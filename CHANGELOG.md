@@ -5,6 +5,34 @@ measured - the numbers are from this repo's own runs, not estimates.
 
 ## Unreleased
 
+## 1.7.0 - 2026-11-20
+
+Chinese interface. Every string in the tray menu, the settings window, the
+first-run window, and the burst prompt is translated, picked from `YESDEV_LANG`
+or the system language: 132 entries, both platforms.
+
+The source tree moved to `src/yesdev/`, grouped by role - `core`, `dialogs`,
+`ui`, `relay`, `platforms` - and child processes start with `python -m` instead
+of a sibling file path. The flat layout is gone; the 66 test imports moved with
+it.
+
+macOS menu: **Welcome…** became **About** and sits above **Quit**. The status
+line and the approval count now share one row, and the Accessibility row only
+appears when the permission is missing.
+
+The macOS build now prefers an Apple Development identity over adhoc signing.
+An adhoc build has no stable identity, so macOS matches the TCC record by code
+hash and every rebuild drops the Accessibility grant. With a certificate the
+record matches bundle id plus subject, so a rebuild no longer does.
+
+Docs: the README now covers what it does, how to install, where the switches
+are, and what to read when approval stops - and nothing else. Six stale cloud
+frames and the two scripts that produced them are gone; new screenshots and
+diagrams cover both languages. A Chinese README is included.
+
+Tests: 202 pass, 24 skipped by platform (Windows-only suites), plus 60 in the
+macOS suite.
+
 ## 1.6.2 - 2026-10-29
 
 The concurrent relay now drains buffered startup events without treating a
