@@ -16,8 +16,30 @@ import sys
 import zipfile
 
 
-APP_FILES = ("yes_dev.pyw", "windows_runtime.py", "watcher_supervisor.py", "watcher.ps1", "puffs.py", "burst_dialog.py",
-             "cdp_relay.py", "cdp_multiplex.py", "relay_windows.py")
+# The package is copied wholesale; this tuple is the manifest the build and its
+# tests check for, so a missing module fails here rather than at first launch.
+APP_PACKAGE = "src/yesdev"
+APP_FILES = (
+    "src/yesdev/__init__.py",
+    "src/yesdev/__main__.py",
+    "src/yesdev/app.py",
+    "src/yesdev/_proc.py",
+    "src/yesdev/platforms/windows_app.py",
+    "src/yesdev/platforms/windows.py",
+    "src/yesdev/relay/supervisor.py",
+    "src/yesdev/relay/cdp_relay.py",
+    "src/yesdev/relay/cdp_multiplex.py",
+    "src/yesdev/relay/relay_windows.py",
+    "src/yesdev/ui/puffs.py",
+    "src/yesdev/ui/burst.py",
+    "src/yesdev/core/settings_model.py",
+    "watcher.ps1",
+)
+
+# Windows needs a .pyw so a double-click starts without a console window. It is
+# generated at build time - the repository keeps no launchable script at top level.
+ENTRY_NAME = "YesDev.pyw"
+ENTRY_SOURCE = "from yesdev.platforms.windows_app import main\n\nraise SystemExit(main())\n"
 
 
 def sha256(path):
@@ -53,8 +75,13 @@ def build(version, output, allow_dirty=False):
     runtime = package / "runtime"
     app.mkdir(parents=True)
     runtime.mkdir()
-    for name in APP_FILES:
-        shutil.copy2(repo / name, app / name)
+    missing = [name for name in APP_FILES if not (repo / name).is_file()]
+    if missing:
+        raise FileNotFoundError("; ".join(missing))
+    shutil.copytree(repo / APP_PACKAGE, app / "yesdev",
+                    ignore=shutil.ignore_patterns("__pycache__", "*.pyc", "*.pyo"))
+    shutil.copy2(repo / "watcher.ps1", app / "watcher.ps1")
+    (app / ENTRY_NAME).write_text(ENTRY_SOURCE, encoding="utf-8")
     shutil.copy2(repo / "packaging/verify_runtime.py", app / "verify_runtime.py")
     for path in sorted(base.iterdir()):
         if path.is_file() and (path.name in ("python.exe", "pythonw.exe", "LICENSE.txt") or path.suffix.lower() == ".dll"):

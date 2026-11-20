@@ -26,7 +26,7 @@ If an Allow dialog has a different language or title, matching can fail before
 an approval record is written. An empty Observe log is therefore not proof that
 there was no dialog. Record the exact title, button text, browser version, app
 version, and time. Windows' supervised path checks patterns in both
-`watcher_supervisor.py` and `watcher.ps1`; changing only standalone worker
+`relay/supervisor.py` and `watcher.ps1`; changing only standalone worker
 arguments does not update the supervisor's discovery filter.
 
 ## App closed or did not start

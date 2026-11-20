@@ -1,5 +1,5 @@
 <p align="center">
-  <img src="docs/logo.svg" alt="Yes, Dev" width="460">
+  <img src="docs/assets/logo.svg" alt="Yes, Dev" width="460">
 </p>
 
 <p align="center">
@@ -18,7 +18,7 @@ Auto-approval lets local programs request debugging access to your signed-in
 browser. Yes, Dev matches the consent dialog; it does not identify or authorize
 the tool requesting access. Enable it only when that tradeoff suits your machine.
 
-![Floating approval notices](docs/puffs.png)
+![Floating approval notices](docs/assets/puffs.png)
 
 ## Start on Windows
 
@@ -41,8 +41,8 @@ Install Python 3.9+ with Tk. Extract the source ZIP or clone this repository,
 then run these commands from the source folder:
 
 ```bash
-python3 -m pip install -r requirements.txt
-python3 yes_dev_mac.py
+python3 -m pip install -e .
+yesdev
 ```
 
 Grant **Accessibility** to that interpreter in System Settings > Privacy &
@@ -163,11 +163,10 @@ focus, and held-connection limits are in the [macOS guide](docs/macos.md).
 ## More documentation
 
 - [Windows guide](docs/windows.md) and [macOS guide](docs/macos.md)
-- [Windows held-connection relay](docs/windows-relay.md)
+- [Windows relay: concurrent Chrome and Edge sharing](docs/concurrent-relay.md)
 - [Troubleshooting](docs/troubleshooting.md)
 - [Architecture, process layout, and rendering](docs/architecture.md)
 - [Tests and validation limits](tests/README.md)
-- [Historical measurements](docs/testing/historical-measurements.md)
 - [Portable package build](packaging/README.md)
 - [Changelog](CHANGELOG.md)
 

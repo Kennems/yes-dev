@@ -15,7 +15,7 @@ The supervisor owns a kill-on-close job for its workers; closing it stops them.
 Direct standalone `watcher.ps1` use remains synchronous and has no supervisor.
 
 With the optional Windows held-connection setting enabled, the tray also owns
-`relay_windows.py`. It uses the shared `cdp_relay.py` transport, opens Chrome
+`relay/relay_windows.py`. It uses the shared `relay/cdp_relay.py` transport, opens Chrome
 on client demand, and retains one connection for sequential clients. It binds
 to the original tray process identity and exits when that parent ends. Status
 sampling runs separately from process control, so slow file reads do not delay
@@ -41,7 +41,7 @@ validates changes and replaces the file atomically, retaining unknown keys.
 
 ### Finding the dialog on Windows
 
-The tray starts `watcher_supervisor.py`, which enumerates visible top-level
+The tray starts `relay/supervisor.py`, which enumerates visible top-level
 `Chrome_WidgetWin_1` windows and verifies each consent title and browser owner.
 The idle path uses Win32 calls and does not scan the accessibility tree.
 
@@ -94,7 +94,7 @@ sheet whose heading matches counts as the host too. The heading walk is shallow
 and runs only for untitled dialogs, so the idle scan still costs well under a
 millisecond per Chrome process.
 
-`watcher_mac.py` walks each Chrome process's windows, sheets and children,
+`dialogs/watcher.py` walks each Chrome process's windows, sheets and children,
 matches by title (or heading) *and* role, and presses the button with
 `AXPress` - with no mouse movement, and without activating Chrome.
 
@@ -152,7 +152,7 @@ those carry text you need to read.
 
 | Windows | macOS |
 |---|---|
-| ![A burst of clouds rising from the Windows tray](clouds-preview.png) | ![A burst of clouds falling from the macOS menu bar](clouds-mac-preview.png) |
+| ![A burst of clouds rising from the Windows tray](assets/clouds-preview.png) | ![A burst of clouds falling from the macOS menu bar](assets/clouds-mac-preview.png) |
 | *__Windows.__ The tray sits at the bottom of the screen, so a cloud is released there and **rises** away into open desktop.* | *__macOS.__ The status item sits at the top, so a cloud is released just under the menu bar and **falls** away from it - and hangs, flipped, rather than sitting on its flat base.* |
 
 That direction is the one deliberate behavioural difference between the two
@@ -167,10 +167,10 @@ The macOS overlay flips only the **alpha mask**, not the whole image - flipping
 the image carries the shading with it and lights the cloud from below, which
 looks wrong hanging under a menu bar.
 
-Neither picture is a mock-up or a hand-arranged row. `docs/make_art.py` and
-`docs/make_art_mac.py` replay a real burst and freeze it mid-flight, taking the
-shapes, spawn positions, speed, drift and fade straight from `puffs.py` and
-`puffs_mac.py`, so the art cannot drift from the app. The two generators are
+Neither picture is a mock-up or a hand-arranged row. `scripts/make_art.py` and
+`scripts/make_art_mac.py` replay a real burst and freeze it mid-flight, taking the
+shapes, spawn positions, speed, drift and fade straight from `ui/puffs.py` and
+`ui/puffs_mac.py`, so the art cannot drift from the app. The two generators are
 built the same way and to the same size, so the pair sits level and any
 difference you see between them is a real difference in the app rather than an
 artefact of how the picture was made.
@@ -180,9 +180,9 @@ are placeholders for scale. The current Windows and macOS tray icons use the
 shared cloud renderer; historical preview art can show an earlier icon.
 
 Both are shown on a dark ground because the clouds are built to read over a
-taskbar and would be nearly invisible on a white page. `docs/clouds.png` and
-`docs/clouds-mac.png` are the same frames with transparent backgrounds and no
-bar, and `docs/cloud.png` is a single cloud, for reuse elsewhere.
+taskbar and would be nearly invisible on a white page. `docs/assets/clouds.png` and
+`docs/assets/clouds-mac.png` are the same frames with transparent backgrounds and no
+bar, and `docs/assets/cloud.png` is a single cloud, for reuse elsewhere.
 
 #### Windows: layered windows
 
@@ -193,13 +193,13 @@ alpha gives soft edges and a shaded underside, and one call moves and fades a
 cloud together.
 
 Three Windows quirks cost real time here and are worth knowing if you touch
-`puffs.py`:
+`ui/puffs.py`:
 
 - **Tk will not paint from a worker thread.** Toplevels created off the main
   thread are reported visible by `IsWindowVisible`, sit at the right
   coordinates, and render solid black. Identical code on the main thread paints
   fine. Since pystray owns the parent's main thread, the overlay runs as its own
-  small process (`puffs.py --serve`) that takes one integer per line on stdin.
+  small process (`python -m yesdev.ui.puffs --serve`) that takes one integer per line on stdin.
 - **Order matters around `SetWindowLongW`.** Applying the click-through ex-style
   to a window that has not been realized yet drops its layered attributes and it
   stays invisible forever. Call `update_idletasks()` first, then set the style,
@@ -239,27 +239,31 @@ in the data directory.
 
 ## Files
 
+Source lives in `src/yesdev/`. Nothing at the repository root is importable
+code - the only exception is `watcher.ps1`, which is the PowerShell engine.
+
 | Path | Role |
 |---|---|
-| `yes_dev.pyw` | Windows tray UI, engine supervisor, config |
-| `yes_dev_mac.py` | macOS menu-bar UI, engine supervisor, config |
-| `settings_mac.py`, `settings_model.py` | Native macOS settings window, validation, atomic persistence |
-| `watcher.ps1` | The UI Automation engine. Runs standalone too. |
-| `watcher_supervisor.py` | Windows prompt discovery, scoped workers, and stall recovery. Used by the tray. |
-| `windows_runtime.py` | Desktop launch broker, lifecycle records, and the independent tray exit watcher. |
-| `watcher_mac.py` | The Accessibility engine. Runs standalone too. |
-| `platform_mac.py` | macOS paths, single instance, permission check, autostart |
-| `puffs.py` | The cloud overlay and the shared artwork. Its own process. |
-| `puffs_mac.py` | The macOS cloud overlay. Its own process. |
-| `focus_guard_mac.py` | The macOS focus guard behind Quiet focus. Its own process. |
-| `cdp_relay.py` | Shared loopback CDP transport, held reuse, client cleanup, and request limits |
-| `relay_windows.py` | Windows relay host, parent identity, status, retry, and owned-child lifecycle |
-| `relay_mac.py` | macOS relay host and early-focus integration |
-| `early_focus_guard_mac.py`, `focus_protocol.py` | Early-focus helper and single-use request policy |
-| `burst_dialog.py` | The five-second burst prompt. Also its own process. Shared. |
-| `docs/mac/ax_probe.py` | Dumps Chrome's accessibility tree around the dialog |
+| `src/yesdev/app.py` | macOS menu-bar UI, engine supervisor, config |
+| `src/yesdev/__main__.py` | Entry point for `python -m yesdev` and the `yesdev` script |
+| `src/yesdev/_proc.py` | Spawns child processes as `python -m <module>` |
+| `src/yesdev/platforms/windows_app.py` | Windows tray UI, engine supervisor, config |
+| `src/yesdev/platforms/mac.py` | macOS paths, single instance, permission check, autostart |
+| `src/yesdev/platforms/windows.py` | Desktop launch broker, lifecycle records, and the independent tray exit watcher |
+| `src/yesdev/core/settings_mac.py`, `core/settings_model.py` | Native macOS settings window, validation, atomic persistence |
+| `watcher.ps1` | The Windows UI Automation engine. Runs standalone too. |
+| `src/yesdev/dialogs/watcher.py` | The macOS Accessibility engine. Runs standalone too. |
+| `src/yesdev/relay/supervisor.py` | Windows prompt discovery, scoped workers, and stall recovery |
+| `src/yesdev/ui/puffs.py` | The cloud overlay and the shared artwork. Its own process. |
+| `src/yesdev/ui/puffs_mac.py` | The macOS cloud overlay. Its own process. |
+| `src/yesdev/dialogs/focus_guard.py` | The macOS focus guard behind Quiet focus. Its own process. |
+| `src/yesdev/relay/cdp_relay.py` | Shared loopback CDP transport, held reuse, client cleanup, and request limits |
+| `src/yesdev/relay/relay_windows.py` | Windows relay host, parent identity, status, retry, and owned-child lifecycle |
+| `src/yesdev/relay/relay_mac.py` | macOS relay host and early-focus integration |
+| `src/yesdev/dialogs/focus_early.py`, `dialogs/focus_protocol.py` | Early-focus helper and single-use request policy |
+| `src/yesdev/ui/burst.py` | The five-second burst prompt. Also its own process. Shared. |
 | `tests/mac/` | Measures the focus guard against a stand-in that steals focus the way Chrome does |
-| `docs/make_art.py`, `docs/make_art_mac.py` | Regenerate the cloud art from `puffs.py` |
+| `scripts/make_art*.py` | Regenerate the cloud art in `docs/assets/` from `puffs.py` |
 
 The Windows package contains the files listed by `packaging/build_windows.py`.
 The build and extraction checks are described in [packaging](../packaging/README.md).
@@ -273,7 +277,7 @@ powershell -NoProfile -ExecutionPolicy Bypass -File watcher.ps1 -Observe
 ```
 
 ```bash
-python3 watcher_mac.py --observe
+python -m yesdev.dialogs.watcher --observe
 ```
 
 Standalone use is for diagnostics. It does not provide the tray's burst guard or

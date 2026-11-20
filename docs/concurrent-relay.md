@@ -164,7 +164,7 @@ Each checkbox stops only its own helper. Browser processes remain running.
 
 ## Validation
 
-See [the test record](testing/concurrent-relay.md) for versions, commands,
-native consent evidence, and test limits. The feature was built and tested in
-a separate checkout. No active user browser, installed Yes, Dev files, or
-resident bridge configuration was changed.
+The feature was built and tested in a separate checkout, using new browser
+profiles, private process jobs, and separate relay ports. No active user
+browser, installed Yes, Dev files, or resident bridge configuration was changed.
+See [tests](../tests/README.md) for how the suites run and what they cover.

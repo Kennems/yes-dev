@@ -46,8 +46,8 @@ the [v1.6.2 source ZIP](https://github.com/dev-newb/yes-dev/releases/download/v1
 or clone the repository, then run these commands from the source folder.
 
 ```powershell
-python -m pip install -r requirements.txt
-pythonw yes_dev.pyw
+python -m pip install -e .
+pythonw -m yesdev
 ```
 
 If `python` resolves to a Windows Store alias, use the full path to the installed

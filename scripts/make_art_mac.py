@@ -26,11 +26,10 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import puffs
-import puffs_mac
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+from yesdev.ui import puffs, puffs_mac
 
-DOCS = Path(__file__).resolve().parent
+DOCS = Path(__file__).resolve().parent.parent / "docs" / "assets"
 
 # Matches docs/clouds-preview.png, so the two sit level in a side-by-side table.
 OUT_W, OUT_H = 600, 599

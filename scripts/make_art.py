@@ -23,10 +23,10 @@ from pathlib import Path
 
 from PIL import Image, ImageDraw
 
-sys.path.insert(0, str(Path(__file__).resolve().parent.parent))
-import puffs
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "src"))
+from yesdev.ui import puffs
 
-DOCS = Path(__file__).resolve().parent
+DOCS = Path(__file__).resolve().parent.parent / "docs" / "assets"
 
 OUT_W, OUT_H = 600, 599
 # The slice of desktop the frame shows, in unscaled pixels. Sized so the burst

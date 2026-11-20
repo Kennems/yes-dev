@@ -106,6 +106,8 @@ body.append(f'<polyline points="{pts}" fill="none" stroke="#fff" stroke-width="{
 svg=(f'<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 {W} {H}" width="{W}" height="{H}" role="img" aria-label="Yes, Dev">'
      f'<defs>{"".join(defs)}<clipPath id="rc"><rect width="{W}" height="{H}" rx="{RADIUS}" ry="{RADIUS}"/></clipPath></defs>'
      f'<g clip-path="url(#rc)"><rect width="{W}" height="{H}" fill="{INK}"/>{"".join(body)}</g></svg>')
-open("/Users/thickdiggy/claude_workspace/yes-dev/docs/logo.svg","w").write(svg)
-open(f"{__import__('os').path.dirname(__file__)}/logo.svg","w").write(svg)
+import os
+out = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), "docs", "assets")
+os.makedirs(out, exist_ok=True)
+open(os.path.join(out, "logo.svg"), "w").write(svg)
 print(f"SVG {W}x{H}, {len(svg)} bytes, clouds={N_CLOUDS}, filters={fid}")

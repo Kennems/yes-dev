@@ -8,8 +8,8 @@ macOS uses the Python source package; the Windows portable ZIP does not run here
 Install Python 3.9+ with Tk, then run these commands from the extracted source:
 
 ```bash
-python3 -m pip install -r requirements.txt
-python3 yes_dev_mac.py
+python3 -m pip install -e .
+yesdev
 ```
 
 A python.org build or a Homebrew Python with Tk can be used. The dependencies
@@ -117,7 +117,8 @@ never your Chrome. A client that connects while the connection is in use gets
 its own connection and its own prompt. Chrome shows its "controlled by
 automated test software" banner for as long as the connection is held. Clients
 that need to work at the same time on one connection need the multiplexed proxy
-in [proxy design notes](planning/cdp-proxy.md), which is still a plan.
+described in [architecture](architecture.md); on Windows that sharing is built
+in, on macOS it is not.
 
 ## Known limitations
 
@@ -137,5 +138,4 @@ in [proxy design notes](planning/cdp-proxy.md), which is still a plan.
   the overlay's coordinates.
 
 See [architecture](architecture.md#finding-the-dialog-on-macos) for sheet matching,
-activation delay, keyboard checks, and rendering details. Historical focus timings
-are kept with [validation history](testing/historical-measurements.md).
+activation delay, keyboard checks, and rendering details.

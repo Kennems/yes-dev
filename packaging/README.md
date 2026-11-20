@@ -40,8 +40,9 @@ and publish the ZIP, `SHA256SUMS.txt`, and a source ZIP generated with `git arch
 from the same commit. Verify the downloaded asset checksum after publication.
 The current runtime and user configuration must not be copied into the package.
 
-The Windows relays use `cdp_relay.py`, `cdp_multiplex.py`, and the `relay_windows.py`
-host. All three files and `websockets==15.0.1` are included in new builds. The portable
+The Windows relays use `relay/cdp_relay.py`, `relay/cdp_multiplex.py`, and the
+`relay/relay_windows.py` host. The whole `src/yesdev` package and `websockets==15.0.1`
+are included in new builds. The portable
 runtime check imports all relay modules and the websockets asyncio client and
 server APIs, then checks all dependency versions against the package pins. It
 does not start the relay, tray, or a browser. The relay is off by default; the
@@ -65,7 +66,7 @@ YesDev.app/Contents/MacOS/YesDev          the CPython binary itself - the app's
                                           main executable, ad-hoc signed
 YesDev.app/Contents/lib/python3.11/       stdlib, Tk, pip dependencies
 YesDev.app/Contents/Resources/app/        the project's .py files
-YesDev.app/Contents/Resources/YesDev.icns icon cut from docs/logo.png
+YesDev.app/Contents/Resources/YesDev.icns icon cut from docs/assets/logo.png
 ```
 
 Because `Contents/MacOS/YesDev` is the bundle's main executable, macOS attributes
