@@ -150,39 +150,15 @@ windows are click-through and non-activating - they never take focus or swallow
 a click. Warnings (burst guard, auto-disarm) still use a real toast, because
 those carry text you need to read.
 
-| Windows | macOS |
-|---|---|
-| ![A burst of clouds rising from the Windows tray](assets/clouds-preview.png) | ![A burst of clouds falling from the macOS menu bar](assets/clouds-mac-preview.png) |
-| *__Windows.__ The tray sits at the bottom of the screen, so a cloud is released there and **rises** away into open desktop.* | *__macOS.__ The status item sits at the top, so a cloud is released just under the menu bar and **falls** away from it - and hangs, flipped, rather than sitting on its flat base.* |
+The one deliberate behavioural difference between the builds: Windows releases a
+cloud at the tray and it **rises**; macOS releases it just under the menu bar and
+it **falls**, hanging flipped. Rising was tried on macOS and measured - a cloud
+released level with the status item crossed the menu bar within a second and
+spent the rest of its life off-screen, still ~40% opaque. The flip applies to the
+alpha mask only; flipping the whole image would light the cloud from below.
 
-That direction is the one deliberate behavioural difference between the two
-builds, and it is forced rather than chosen. Rising was tried first on macOS and
-measured: released level with the status item, a cloud crossed the menu bar
-within a second and spent the rest of its life off-screen, still ~40% opaque.
-
-Every cloud is generated, never a stored asset: five jittered lobes over a flat
-base, blurred for soft edges, put through a contrast curve so the silhouette
-still reads as a shape, then shaded with a vertical gradient. No two are alike.
-The macOS overlay flips only the **alpha mask**, not the whole image - flipping
-the image carries the shading with it and lights the cloud from below, which
-looks wrong hanging under a menu bar.
-
-Neither picture is a mock-up or a hand-arranged row. `scripts/make_art.py` and
-`scripts/make_art_mac.py` replay a real burst and freeze it mid-flight, taking the
-shapes, spawn positions, speed, drift and fade straight from `ui/puffs.py` and
-`ui/puffs_mac.py`, so the art cannot drift from the app. The two generators are
-built the same way and to the same size, so the pair sits level and any
-difference you see between them is a real difference in the app rather than an
-artefact of how the picture was made.
-
-The bar along the edge of each image is a generic stand-in. Neighbouring icons
-are placeholders for scale. The current Windows and macOS tray icons use the
-shared cloud renderer; historical preview art can show an earlier icon.
-
-Both are shown on a dark ground because the clouds are built to read over a
-taskbar and would be nearly invisible on a white page. `docs/assets/clouds.png` and
-`docs/assets/clouds-mac.png` are the same frames with transparent backgrounds and no
-bar, and `docs/assets/cloud.png` is a single cloud, for reuse elsewhere.
+Clouds are generated, never stored: five jittered lobes over a flat base,
+blurred, contrast-curved, gradient-shaded, so no two bursts repeat.
 
 #### Windows: layered windows
 
@@ -263,7 +239,7 @@ code - the only exception is `watcher.ps1`, which is the PowerShell engine.
 | `src/yesdev/dialogs/focus_early.py`, `dialogs/focus_protocol.py` | Early-focus helper and single-use request policy |
 | `src/yesdev/ui/burst.py` | The burst prompt. Also its own process. Shared by both platforms. |
 | `tests/mac/` | Fakes the native calls and measures the focus guard's decisions |
-| `scripts/make_art*.py` | Regenerate the cloud art in `docs/assets/` from `puffs.py` |
+| `scripts/make_logo.py` | Regenerates the logo art in `docs/assets/` |
 
 The Windows package contains the files listed by `packaging/build_windows.py`.
 The build and extraction checks are described in [packaging](../packaging/README.md).

@@ -1,175 +1,115 @@
 <p align="center">
-  <img src="docs/assets/logo.svg" alt="Yes, Dev" width="460">
+  <img src="docs/assets/logo.svg" alt="Yes, Dev" width="420">
 </p>
 
 <p align="center">
   Approve Chrome and Edge remote-debugging prompts from your tray or menu bar.
 </p>
 
-Yes, Dev answers matching **Allow remote debugging?** prompts so local automation
-tools can connect without waiting for a manual click. It runs on Windows and
-macOS. Windows has a portable ZIP; macOS uses the Python source app.
+Yes, Dev clicks the **Allow remote debugging?** consent sheet, so local automation
+tools — Playwright, an MCP server, your own script — connect without waiting for
+you to click. Windows and macOS.
 
-**[Download Windows x64 v1.6.2](https://github.com/dev-newb/yes-dev/releases/download/v1.6.2/YesDev-1.6.2-windows-x64.zip)**
-· [Release notes and checksums](https://github.com/dev-newb/yes-dev/releases/tag/v1.6.2)
-· [Source ZIP](https://github.com/dev-newb/yes-dev/releases/download/v1.6.2/YesDev-1.6.2-source.zip)
+> **It answers the dialog. It never checks who asked.** Any local program gets
+> through while approval is on, so run it only where that is acceptable.
 
-Auto-approval lets local programs request debugging access to your signed-in
-browser. Yes, Dev matches the consent dialog; it does not identify or authorize
-the tool requesting access. Enable it only when that tradeoff suits your machine.
+![What happens when a tool asks for the browser](docs/assets/how-it-works.svg)
 
-![Floating approval notices](docs/assets/puffs.png)
+## Install
 
-## Start on Windows
+**Windows** — [download the ZIP](https://github.com/Kennems/yes-dev/releases/latest),
+extract the whole folder somewhere permanent, and run `YesDev.exe`. Keep `app/`
+and `runtime/` beside it; Python is bundled. Needs Windows 10/11 x64 and
+PowerShell 5.1. The launcher is unsigned, so SmartScreen may ask once.
 
-1. Download the Windows ZIP and **extract the whole folder** to a permanent location.
-2. Open `YesDev.exe`. Keep the `app` and `runtime` folders beside it.
-3. Use the tray menu to enable Edge, change settings, or choose **Start at login**.
-
-Python, Tcl/Tk, and the app dependencies are included. You do not need to install
-Python or pip. The package requires Windows 10/11 x64, Windows PowerShell 5.1,
-.NET Framework 4.x, and the normal desktop Explorer shell. The launcher is unsigned.
-
-The Windows app checks its launch context and starts the tray through desktop
-Explorer when needed, independently of a caller such as Codex. Version 1.5.0 also
-fixes all three speed choices, isolates stalled approval work, and records startup
-and exit details. [Windows setup and source installation](docs/windows.md)
-
-## Start on macOS
-
-Install Python 3.9+ with Tk. Extract the source ZIP or clone this repository,
-then run these commands from the source folder:
+**macOS** — no signed `.app` is shipped; run from source:
 
 ```bash
+git clone https://github.com/Kennems/yes-dev.git && cd yes-dev
 python3 -m pip install -e .
 yesdev
 ```
 
-Grant **Accessibility** to that interpreter in System Settings > Privacy &
-Security > Accessibility. The app's **Accessibility** menu item opens the page.
-Use **Settings…** for configuration. A signed macOS `.app` is not included.
+Then grant **Accessibility** to that interpreter in System Settings › Privacy &
+Security. The menu's **Accessibility** item opens the page.
 
-The recorded native tests used macOS 26 and Chrome 152–154. Version 1.6.0
-includes shared relay fixes tested on Windows; no new macOS native test run
-was performed. [macOS setup, permissions, and limits](docs/macos.md)
+Full setup: [Windows](docs/windows.md) · [macOS](docs/macos.md)
 
-## Main controls
+## What you see
 
-The Windows tray exposes approval settings directly. On macOS, they are in
-**Settings…**; the menu keeps status, the master switch, permissions, logs, and Quit.
+The first-run window says what it does, what it needs, and whether the
+permission is already there. **About** in the menu reopens it.
 
-| Control | Behavior |
+![The first-run window](docs/assets/welcome.png)
+
+Once it is running, everything lives in one menu:
+
+![The menu, top to bottom](docs/assets/menu.svg)
+
+## Settings
+
+Two tabs. **General** holds the switches you actually touch:
+
+![General settings](docs/assets/settings-general.png)
+
+**Focus & connection** only matters if you drive the browser through the relay:
+
+![Focus and connection settings](docs/assets/settings-focus.png)
+
+| Setting | What it does |
 |---|---|
-| **On** | Enable or stop automatic approval. |
-| **Start at login** | Create a Windows Startup shortcut or macOS LaunchAgent. |
-| **Stay on for** | Set a disarm timer or choose **Until I turn it off**. |
-| **Speed** / check interval | Windows choices are 150, 250, or 750 ms. |
-| **Approve notice** | Floating puffs, toast, or silent. |
-| **Pause on burst** | Set a rate limit and choose whether to ask or pause silently. |
-| **Observe only** | Log matching dialogs without approving them. |
-| **Include Microsoft Edge** | Include Edge consent dialogs. |
-| **Open startup/exit records** | Windows lifecycle diagnostics. |
+| **Automatically approve** | Master switch |
+| **Observe only** | Log matches, approve nothing — use it to see what would be approved |
+| **Include Microsoft Edge** | Also answer Edge dialogs |
+| **Approval notice** | Floating puffs, a toast, or silence |
+| **Check interval** | Poll rate. 250 ms default; higher means less CPU, slower reaction |
+| **Stay on for** | Disarm after N minutes; `0` means until you turn it off |
+| **Pause after** | Approvals per minute before self-protection; `0` disables it |
+| **When a burst occurs** | Ask first, or stop silently |
 
-### Share one connection per browser on Windows
+Defaults: approval on, Edge off, 250 ms, puffs, no timer, 60 approvals/minute.
+At the burst limit it asks **Stop** or **Allow for one hour**; no answer within
+15 seconds stops it. **Stop silently** resumes after about a minute.
 
-**Windows v1.6.2** supports concurrent clients on one upstream connection per
-browser. Enable **Options > Keep one Chrome connection open** and/or
-**Keep one Edge connection open**, then point your CDP tools at
-`http://127.0.0.1:9333` for Chrome or `http://127.0.0.1:9334` for Edge.
-To approve Edge prompts automatically, also select **Include Microsoft Edge**.
+## Beyond the basics
 
-The first client can need an approval. Later clients share that connection,
-including concurrent clients. Direct browser connections do not use the relay.
-Each relay is off by default and stops on Off, pause, Observe only, or Quit.
-Browsers stay open. Windows focus restoration is not included.
-[Profile setup, Claude/Codex routing, and limits](docs/concurrent-relay.md)
+**Windows — one connection per browser.** Turn on **Keep one Chrome/Edge
+connection open** and point your CDP tools at `127.0.0.1:9333` (Chrome) or
+`9334` (Edge). Later clients share that connection instead of re-prompting.
+[Setup and routing](docs/concurrent-relay.md)
 
-### Approval defaults
+**macOS — focus and relay.** *Quiet focus* hands focus back after Chrome grabs
+it; *Fast focus* prepares the return before the prompt appears and requires
+connecting through the relay. Both are off by default.
+[Focus behaviour](docs/macos.md#focus-behavior)
 
-Defaults on both platforms: approval on, Observe only off, Edge off, 250 ms
-checks, floating puffs, no disarm timer, and a 60-approvals-per-minute burst limit.
-Existing installations retain their saved settings.
+## When it stops approving
 
-The default burst action asks for **Stop** or **Allow for one hour**. If the
-five-second question expires, approval stops until enabled again. With **Stop
-silently**, it pauses and resumes after about a minute. A speed setting controls
-the polling interval; it is not a promise of end-to-end approval latency.
+Check the tray is there, **Auto-approve** is ticked, and neither Observe mode nor
+a timer is active. Then read the log:
 
-### macOS focus and connection options
+- `%LOCALAPPDATA%\YesDev\yes-dev.log` (Windows) and
+  `~/Library/Application Support/YesDev/yes-dev.log` (macOS) — why a dialog was
+  or was not answered
+- `relay.log` in the same folder — only exists while the relay is on
 
-In **Settings… > Focus & connection**, choose:
+Settings live in those folders too and survive updates. **Quit the app before
+replacing it** — a running copy keeps executing old code.
 
-- **Quiet focus**: return focus to your previous app after Chrome activates with
-  a consent sheet.
-- **Fast focus via local relay**: prepare the focus return before a client
-  connection triggers the prompt. Tools must connect through the relay.
-- **Keep one Chrome connection open**: with Fast focus, retain an approved
-  Chrome connection and lend it to sequential clients. A concurrent client can
-  need another connection and prompt.
+Only the consent mode behind `chrome://inspect/#remote-debugging` is handled;
+command-line remote debugging is a different path. Windows matches English and
+Simplified Chinese dialogs, so a renamed browser title needs a code change.
 
-These options are off by default. Quiet focus and Fast focus remain
-**macOS-only**. Windows concurrent connection sharing is included in v1.6.2, as described
-above. Input can cancel the macOS focus return;
-a brief interruption or Space switch can still occur.
-The relay stays resident while enabled and stops with the app, a pause, or
-Observe mode. It is an app-managed helper, not a separate system service.
-[Setup and reuse limits](docs/macos.md#focus-behavior)
+[Troubleshooting](docs/troubleshooting.md)
 
-## Update
+## Docs
 
-Choose **Quit** in the old app first. Chrome and Edge can stay open. A second
-copy exits without replacing the active tray, and replacing files does not make
-the old process load new code.
-
-- **Windows ZIP:** extract the new release to a permanent folder and open its
-  `YesDev.exe`. If the folder changed, turn **Start at login** off, then on.
-- **Source:** replace the source files, or run `git pull --ff-only` from a clean
-  checkout. Install requirements again and start the platform's entry point.
-
-Settings stay in `%LOCALAPPDATA%\YesDev\` on Windows and
-`~/Library/Application Support/YesDev/` on macOS. They survive an update.
-Do not delete the data folder to update the app.
-
-## If approval stops
-
-Check that the tray is present, **On** is enabled, and the app is not observing
-or paused. Check the timer and Edge setting. With no disarm timer, inactivity
-should not close the app.
-
-Windows records worker stalls in `supervisor.log` and session details under
-`%LOCALAPPDATA%\YesDev\lifecycle`. Use **Open startup/exit records** to find the
-latest ready session, heartbeat, exception, and exit code. A separate exit watcher
-can record forced termination. If both processes disappear, the next start marks
-the missing exit record as unknown. Records cannot always name an external killer.
-
-Independent startup does not mean a terminated tray automatically restarts.
-Start it again if absent. A successful runtime check also does not prove browser
-approval: `YesDev.exe --check-runtime` checks imports without starting the tray.
-[Troubleshooting and complete log map](docs/troubleshooting.md)
-
-## Support and limits
-
-Yes, Dev handles the consent-based connection mode enabled through
-`chrome://inspect/#remote-debugging`. Command-line remote debugging is a
-different mode. Windows v1.5.0 matches English and Simplified Chinese dialogs;
-other languages or changed browser titles can need code changes. A prompt that
-fails title matching may not appear in the approval log.
-
-The Windows release passed isolated Chrome/Edge connection checks, startup/exit
-tests, and forced-stall recovery tests. Those checks are not a guarantee of
-unattended stability on every machine. macOS permission, keyboard fallback,
-focus, and held-connection limits are in the [macOS guide](docs/macos.md).
-
-## More documentation
-
-- [Windows guide](docs/windows.md) and [macOS guide](docs/macos.md)
-- [Windows relay: concurrent Chrome and Edge sharing](docs/concurrent-relay.md)
-- [Troubleshooting](docs/troubleshooting.md)
-- [Architecture, process layout, and rendering](docs/architecture.md)
-- [Tests and validation limits](tests/README.md)
-- [Portable package build](packaging/README.md)
-- [Changelog](CHANGELOG.md)
+[Windows](docs/windows.md) · [macOS](docs/macos.md) ·
+[Windows relay](docs/concurrent-relay.md) · [Troubleshooting](docs/troubleshooting.md) ·
+[Architecture](docs/architecture.md) · [Tests](tests/README.md) ·
+[Packaging](packaging/README.md) · [Changelog](CHANGELOG.md) ·
+[中文说明](README.zh-CN.md)
 
 ## License
 
-[MIT](LICENSE). The portable ZIP includes the bundled runtime and dependency licenses.
+[MIT](LICENSE). The portable ZIP bundles runtime and dependency licenses.

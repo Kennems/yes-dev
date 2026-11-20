@@ -1,0 +1,55 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 336" width="1160" height="336" role="img" aria-label="Yes, Dev 如何替你回答浏览器授权弹窗">
+  <rect width="1160" height="336" fill="#ffffff"/>
+  <text x="20" y="30" font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, -apple-system, sans-serif" font-size="17" font-weight="600" fill="#14161C">一个工具请求使用浏览器时，发生了什么</text>
+
+  <g font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, -apple-system, sans-serif">
+    <!-- 1 -->
+    <rect x="20" y="56" width="256" height="172" rx="10" fill="#F7FAFD" stroke="#E3E8EF"/>
+    <circle cx="48" cy="90" r="13" fill="#C9D2DF"/>
+    <text x="48" y="95" font-size="13" font-weight="700" fill="#14161C" text-anchor="middle">1</text>
+    <text x="48" y="132" font-size="15" font-weight="600" fill="#14161C">工具发起连接</text>
+    <text x="48" y="157" font-size="13" fill="#5A6472">Playwright、MCP 服务</text>
+    <text x="48" y="177" font-size="13" fill="#5A6472">或你自己的脚本，</text>
+    <text x="48" y="197" font-size="13" fill="#5A6472">发起 CDP 连接。</text>
+
+    <!-- 2 -->
+    <rect x="308" y="56" width="256" height="172" rx="10" fill="#F7FAFD" stroke="#E3E8EF"/>
+    <circle cx="336" cy="90" r="13" fill="#C9D2DF"/>
+    <text x="336" y="95" font-size="13" font-weight="700" fill="#14161C" text-anchor="middle">2</text>
+    <text x="336" y="132" font-size="15" font-weight="600" fill="#14161C">Chrome 弹出询问</text>
+    <text x="336" y="157" font-size="13" fill="#5A6472">系统弹出「允许远程调试」</text>
+    <text x="336" y="177" font-size="13" fill="#5A6472">面板，停在那里</text>
+    <text x="336" y="197" font-size="13" fill="#5A6472">等人点一下。</text>
+
+    <!-- 3 -->
+    <rect x="596" y="56" width="256" height="172" rx="10" fill="#F1FBF3" stroke="#56C868"/>
+    <circle cx="624" cy="90" r="13" fill="#56C868"/>
+    <text x="624" y="95" font-size="13" font-weight="700" fill="#14161C" text-anchor="middle">3</text>
+    <text x="624" y="132" font-size="15" font-weight="600" fill="#14161C">Yes, Dev 替你点</text>
+    <text x="624" y="157" font-size="13" fill="#5A6472">菜单栏发现这个面板，</text>
+    <text x="624" y="177" font-size="13" fill="#5A6472">按下「允许」，</text>
+    <text x="624" y="197" font-size="13" fill="#5A6472">并把计数加一。</text>
+
+    <!-- 4 -->
+    <rect x="884" y="56" width="256" height="172" rx="10" fill="#F7FAFD" stroke="#E3E8EF"/>
+    <circle cx="912" cy="90" r="13" fill="#C9D2DF"/>
+    <text x="912" y="95" font-size="13" font-weight="700" fill="#14161C" text-anchor="middle">4</text>
+    <text x="912" y="132" font-size="15" font-weight="600" fill="#14161C">工具连上了</text>
+    <text x="912" y="157" font-size="13" fill="#5A6472">客户端拿到调试会话，</text>
+    <text x="912" y="177" font-size="13" fill="#5A6472">继续干活。</text>
+
+    <!-- arrows -->
+    <g stroke="#9AA6B6" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M282 142h18m-6-5 6 5-6 5"/>
+      <path d="M570 142h18m-6-5 6 5-6 5"/>
+      <path d="M858 142h18m-6-5 6 5-6 5"/>
+    </g>
+
+    <!-- caveat -->
+    <rect x="20" y="252" width="1120" height="56" rx="10" fill="#FFF8E5" stroke="#EFD9A2"/>
+    <circle cx="48" cy="280" r="9" fill="#E8B93C"/>
+    <text x="48" y="285" font-size="13" font-weight="700" fill="#7A5B0F" text-anchor="middle">!</text>
+    <text x="72" y="274" font-size="13" fill="#7A5B0F">它只负责回答弹窗，不判断是谁在请求 ——</text>
+    <text x="72" y="294" font-size="13" fill="#7A5B0F">开启期间，任何本地程序都能进来。</text>
+  </g>
+</svg>

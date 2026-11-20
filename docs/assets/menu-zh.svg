@@ -1,0 +1,53 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 880 360" width="880" height="360" role="img" aria-label="Yes, Dev 的菜单">
+  <rect width="880" height="360" fill="#ffffff"/>
+  <g font-family="PingFang SC, Hiragino Sans GB, Microsoft YaHei, -apple-system, sans-serif">
+    <text x="32" y="34" font-size="15" font-weight="600" fill="#14161C">菜单从上到下</text>
+
+    <!-- menu panel -->
+    <rect x="32" y="60" width="290" height="276" rx="10" fill="#2B2F36" stroke="#1E2228"/>
+    <text x="56" y="88" font-size="12.5" fill="#9AA3B2">运行中 · 已批准 3 次</text>
+    <line x1="32" y1="104" x2="322" y2="104" stroke="#3D434D" stroke-width="1"/>
+    <text x="56" y="128" font-size="13" fill="#EDEFF3">✓  自动批准</text>
+    <text x="56" y="154" font-size="13" fill="#EDEFF3">设置…</text>
+    <text x="56" y="180" font-size="13" fill="#EDEFF3">快速聚焦：关闭</text>
+    <line x1="32" y1="196" x2="322" y2="196" stroke="#3D434D" stroke-width="1"/>
+    <text x="56" y="220" font-size="13" fill="#EDEFF3">打开日志</text>
+    <text x="56" y="246" font-size="13" fill="#EDEFF3">打开中继日志</text>
+    <line x1="32" y1="262" x2="322" y2="262" stroke="#3D434D" stroke-width="1"/>
+    <text x="56" y="286" font-size="13" fill="#EDEFF3">关于</text>
+    <text x="56" y="312" font-size="13" fill="#EDEFF3">退出</text>
+
+    <!-- leaders -->
+    <g stroke="#C9D2DF" stroke-width="1.2" fill="none">
+      <path d="M322 84h44"/>
+      <path d="M322 154h44"/>
+      <path d="M322 233h44"/>
+      <path d="M322 299h44"/>
+    </g>
+    <g fill="#C9D2DF">
+      <circle cx="370" cy="84" r="3"/>
+      <circle cx="370" cy="154" r="3"/>
+      <circle cx="370" cy="233" r="3"/>
+      <circle cx="370" cy="299" r="3"/>
+    </g>
+
+    <!-- notes -->
+    <g font-size="12.5" fill="#5A6472">
+      <text x="388" y="80" font-weight="600" fill="#14161C">现在是不是在干活</text>
+      <text x="388" y="98">状态和批准次数。这一行如果是灰的、</text>
+      <text x="388" y="115">一直不动，说明 watcher 没跑起来。</text>
+
+      <text x="388" y="146" font-weight="600" fill="#14161C">日常开关</text>
+      <text x="388" y="164">总开关、设置窗口入口，以及上次选的</text>
+      <text x="388" y="181">聚焦方式。</text>
+
+      <text x="388" y="225" font-weight="600" fill="#14161C">两个日志</text>
+      <text x="388" y="243">主日志：这个弹窗为什么批了 / 为什么没批。</text>
+      <text x="388" y="260">中继日志：客户端连没连上。</text>
+
+      <text x="388" y="291" font-weight="600" fill="#14161C">关于与退出</text>
+      <text x="388" y="309">「关于」重新打开首次运行窗口。</text>
+      <text x="388" y="326">「退出」会同时停掉托盘和 watcher。</text>
+    </g>
+  </g>
+</svg>

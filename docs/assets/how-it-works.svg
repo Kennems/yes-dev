@@ -1,0 +1,56 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1160 336" width="1160" height="336" role="img" aria-label="How Yes, Dev answers the browser consent dialog">
+  <rect width="1160" height="336" fill="#ffffff"/>
+  <text x="20" y="30" font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif" font-size="17" font-weight="600" fill="#14161C">What happens when a tool asks for the browser</text>
+
+  <g font-family="-apple-system, Segoe UI, Helvetica, Arial, sans-serif">
+    <!-- 1 -->
+    <rect x="20" y="56" width="256" height="172" rx="10" fill="#F7FAFD" stroke="#E3E8EF"/>
+    <circle cx="48" cy="90" r="13" fill="#C9D2DF"/>
+    <text x="48" y="95" font-size="13" font-weight="700" fill="#14161C" text-anchor="middle">1</text>
+    <text x="48" y="132" font-size="15" font-weight="600" fill="#14161C">Tool connects</text>
+    <text x="48" y="157" font-size="13" fill="#5A6472">Playwright, an MCP</text>
+    <text x="48" y="177" font-size="13" fill="#5A6472">server, or your own</text>
+    <text x="48" y="197" font-size="13" fill="#5A6472">script opens CDP.</text>
+
+    <!-- 2 -->
+    <rect x="308" y="56" width="256" height="172" rx="10" fill="#F7FAFD" stroke="#E3E8EF"/>
+    <circle cx="336" cy="90" r="13" fill="#C9D2DF"/>
+    <text x="336" y="95" font-size="13" font-weight="700" fill="#14161C" text-anchor="middle">2</text>
+    <text x="336" y="132" font-size="15" font-weight="600" fill="#14161C">Chrome asks</text>
+    <text x="336" y="157" font-size="13" fill="#5A6472">A native "Allow remote</text>
+    <text x="336" y="177" font-size="13" fill="#5A6472">debugging?" sheet shows</text>
+    <text x="336" y="197" font-size="13" fill="#5A6472">up and waits for you.</text>
+
+    <!-- 3 -->
+    <rect x="596" y="56" width="256" height="172" rx="10" fill="#F1FBF3" stroke="#56C868"/>
+    <circle cx="624" cy="90" r="13" fill="#56C868"/>
+    <text x="624" y="95" font-size="13" font-weight="700" fill="#14161C" text-anchor="middle">3</text>
+    <text x="624" y="132" font-size="15" font-weight="600" fill="#14161C">Yes, Dev answers it</text>
+    <text x="624" y="157" font-size="13" fill="#5A6472">The tray sees the sheet,</text>
+    <text x="624" y="177" font-size="13" fill="#5A6472">presses Allow, and adds</text>
+    <text x="624" y="197" font-size="13" fill="#5A6472">one to the counter.</text>
+
+    <!-- 4 -->
+    <rect x="884" y="56" width="256" height="172" rx="10" fill="#F7FAFD" stroke="#E3E8EF"/>
+    <circle cx="912" cy="90" r="13" fill="#C9D2DF"/>
+    <text x="912" y="95" font-size="13" font-weight="700" fill="#14161C" text-anchor="middle">4</text>
+    <text x="912" y="132" font-size="15" font-weight="600" fill="#14161C">The tool is in</text>
+    <text x="912" y="157" font-size="13" fill="#5A6472">The client gets its</text>
+    <text x="912" y="177" font-size="13" fill="#5A6472">debugging session and</text>
+    <text x="912" y="197" font-size="13" fill="#5A6472">carries on.</text>
+
+    <!-- arrows -->
+    <g stroke="#9AA6B6" stroke-width="1.6" fill="none" stroke-linecap="round" stroke-linejoin="round">
+      <path d="M282 142h18m-6-5 6 5-6 5"/>
+      <path d="M570 142h18m-6-5 6 5-6 5"/>
+      <path d="M858 142h18m-6-5 6 5-6 5"/>
+    </g>
+
+    <!-- caveat -->
+    <rect x="20" y="252" width="1120" height="56" rx="10" fill="#FFF8E5" stroke="#EFD9A2"/>
+    <circle cx="48" cy="280" r="9" fill="#E8B93C"/>
+    <text x="48" y="285" font-size="13" font-weight="700" fill="#7A5B0F" text-anchor="middle">!</text>
+    <text x="72" y="274" font-size="13" fill="#7A5B0F">It answers the dialog. It does not check who is asking —</text>
+    <text x="72" y="294" font-size="13" fill="#7A5B0F">any local program gets through while approval is on.</text>
+  </g>
+</svg>
