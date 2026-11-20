@@ -1,40 +1,35 @@
 # Tests
 
-Two kinds of file live here: `test_*.py` suites that run anywhere, and
-`verify_*` / `*_live.py` tools that need a real browser or a real desktop.
-The suites are what day-to-day work and CI use.
+Three things live here: `test_*.py` suites that run anywhere Python runs,
+macOS-specific suites under `mac/`, and a PowerShell harness for the Windows
+desktop. The Python suites are what day-to-day work and CI use.
 
 ## Running
 
-Install the package once, so `import yesdev` resolves without path tricks:
+Install the package once, so `import yesdev` and the native dependencies
+resolve without path tricks:
 
 ```bash
 python3 -m pip install -e .
 ```
 
-Then, on macOS or Linux:
+Then, on macOS:
 
 ```bash
 python3 -m unittest discover -s tests -t tests -p "test_*.py"
 python3 -m unittest discover -s tests/mac -p "test_*.py"
-python3 -m pytest                    # same suites, if pytest is installed
 ```
 
 `-t tests` is required: `tests/` is not a package, so discovery needs the
-top-level directory stated explicitly.
+top-level directory stated explicitly. `python3 -m pytest` runs the same
+suites if pytest is installed.
 
-On Windows, use a full CPython installation rather than a venv redirector for
-the suites that exercise the Explorer launch broker:
+A full run is 202 tests with 24 skipped on macOS: Windows-only suites skip
+here, and the suites that touch macOS permission state skip when they cannot
+reach the real AX API.
 
-```powershell
-python -m unittest discover -s tests -t tests -p "test_*.py" -v
-```
-
-Suites that touch macOS permission state skip elsewhere, and Windows-only
-suites skip on macOS. A run of 202 tests with 24 skipped is expected on macOS.
-
-Everything here uses temporary data, fake loopback endpoints, and processes it
-owned. No suite starts the installed app, reads your browser profile, or
+Everything runs against temporary data, fake loopback endpoints, and processes
+it owns. No suite starts the installed app, reads a browser profile, or
 approves a real prompt.
 
 ## Suites at the root
@@ -80,42 +75,30 @@ macOS-specific behaviour. These fake the native calls rather than driving them.
 | `test_tray_settings.py` | Settings application and helper ownership |
 
 `early_focus_client.py`, `early_focus_guard.py`, and `early_focus_protocol.py`
-are small shims that `test_early_focus.py` imports; they are not standalone
-suites.
+are shims that `test_early_focus.py` imports; they are not standalone suites.
+`hold_puppeteer_probe.mjs` and `traffic_puppeteer_client.mjs` are fixtures
+those suites shell out to.
 
-## Live verification tools
+## Windows desktop harness
 
-These are not run by discovery. They were written against the old flat layout
-and launch processes by file path, so several spawn calls no longer resolve
-after the move to `src/yesdev`. Treat them as starting points to update before
-use, not as a passing suite.
+`run-windows-tests.ps1` is the only entry point for anything that needs a real
+Windows session. Run it from Windows, not from CI on another OS:
 
-| File | What it drives |
-|---|---|
-| `mac/verify_hold_live.py` | The held CDP connection against real Chrome |
-| `mac/verify_relay_live.py` | Real clients against a named desktop |
-| `mac/verify_parent_exit_live.py` | Kills a real tray and watches helpers exit |
-| `mac/verify_tray_lifecycle.py` | Tray settings and helper lifetimes |
-| `mac/verify_focus_input.py` | Input after cancelling a live focus request |
-| `mac/verify_attribute_reads.py` | Native AX reads against a disposable Chrome |
-| `mac/native_input_checks.py` | Explicitly authorised native input |
-| `mac/recon_cdp_live.py` | Records MCP/Playwright/Puppeteer traffic |
-| `mac/record_cdp_traffic.py` | Consent-mode evidence capture |
-| `mac/soak_everyday.py` | Bounded mixed-client soak with a real tray |
-| `mac/focus_flasher.py` | Stand-in for Chrome's self-activation |
-| `windows_relay_live.py` | Isolated headless Chrome through the relay |
-| `windows_relay_consent.py` | Real Chrome consent on a private desktop |
-| `windows_relay_adversarial_live.py` | Fault injection against a real host |
-| `windows_relay_performance_live.py` | Idle and load checks on an owned relay |
-| `windows_multiplex_live.py` | Private Chrome and Edge sharing |
-| `windows_multiplex_mcp.py` | Four stdio MCP servers against two relays |
-| `windows_multiplex_stress.py` | Concurrency stress on private browsers |
-| `tray-launch.py` | The real tray launch method, parsed from source |
-| `tray-log.py` | The real tray log reader, parsed from source |
+```powershell
+.\tests\run-windows-tests.ps1 -IncludeBrowsers
+```
 
-Headless browser checks do not prove native consent. Only
-`windows_relay_consent.py` and the macOS `verify_*` tools exercise the real
-permission dialog, and those require a desktop you can dedicate to the run.
+It drives the Python suites, then the helper scripts it depends on:
+`concurrent-worker-log.ps1`, `watcher-regression.ps1`, `log-writer.ps1`,
+`soak-log-reader.ps1`, `run-private-desktop.ps1` (with `legacy-native.ps1` and,
+under `-IncludeBrowsers`, `browser-private.ps1`), plus `tray-launch.py` and
+`tray-log.py`, which read the tray entry point and log reader out of the
+source. `memory-soak.ps1` is the long-running soak that `soak-log-reader.ps1`
+parses for its assertions.
+
+Those scripts start real browsers on a private desktop and press real buttons.
+Nothing in the Python suites proves a given Chrome or Windows build puts its
+consent sheet where the matcher expects it; only this harness does.
 
 ## Limits
 

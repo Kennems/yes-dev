@@ -261,8 +261,8 @@ code - the only exception is `watcher.ps1`, which is the PowerShell engine.
 | `src/yesdev/relay/relay_windows.py` | Windows relay host, parent identity, status, retry, and owned-child lifecycle |
 | `src/yesdev/relay/relay_mac.py` | macOS relay host and early-focus integration |
 | `src/yesdev/dialogs/focus_early.py`, `dialogs/focus_protocol.py` | Early-focus helper and single-use request policy |
-| `src/yesdev/ui/burst.py` | The five-second burst prompt. Also its own process. Shared. |
-| `tests/mac/` | Measures the focus guard against a stand-in that steals focus the way Chrome does |
+| `src/yesdev/ui/burst.py` | The burst prompt. Also its own process. Shared by both platforms. |
+| `tests/mac/` | Fakes the native calls and measures the focus guard's decisions |
 | `scripts/make_art*.py` | Regenerate the cloud art in `docs/assets/` from `puffs.py` |
 
 The Windows package contains the files listed by `packaging/build_windows.py`.

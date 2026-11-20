@@ -4,3 +4,7 @@ __pycache__/
 config.json
 .venv/
 dist/
+build/
+*.egg-info/
+.pytest_cache/
+.ruff_cache/
