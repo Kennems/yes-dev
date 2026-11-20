@@ -29,13 +29,14 @@ once. Removing an older grant entry for python3.11 is expected.
 from __future__ import annotations
 
 import argparse
+import os
 import shutil
 import subprocess
 import sys
 from pathlib import Path
 
 BASE = Path(__file__).resolve().parent.parent
-ICON_SOURCE = BASE / "docs" / "logo.png"
+ICON_SOURCE = BASE / "docs" / "assets" / "logo.png"
 BUNDLE_ID = "com.dev-newb.yesdev"
 VERSION = "1.6.2"
 RUNTIME_MINOR = "python3.11"   # the directory name under Contents/lib

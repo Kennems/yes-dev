@@ -558,16 +558,17 @@ class YesDev(rumps.App):
 
     def _build_menu(self) -> None:
         self.mi_status = rumps.MenuItem(i18n.t("menu.status.starting"))
-        self.mi_count = rumps.MenuItem(i18n.t("menu.approved", count=0))
         self.mi_access = rumps.MenuItem(i18n.t("menu.access.checking"), callback=self.on_grant_accessibility)
         self.mi_on = rumps.MenuItem(i18n.t("menu.on"), callback=self.on_toggle_enabled)
         self.mi_relay = rumps.MenuItem(i18n.t("menu.relay.off"))
         self.menu = [
-            self.mi_status, self.mi_count, self.mi_access, None, self.mi_on,
-            rumps.MenuItem(i18n.t("menu.welcome"), callback=self.on_welcome),
-            rumps.MenuItem(i18n.t("menu.settings"), callback=self.on_settings), self.mi_relay, None,
+            self.mi_status, self.mi_access, None,
+            self.mi_on,
+            rumps.MenuItem(i18n.t("menu.settings"), callback=self.on_settings),
+            self.mi_relay, None,
             rumps.MenuItem(i18n.t("menu.open_log"), callback=self.on_open(LOG_PATH)),
             rumps.MenuItem(i18n.t("menu.open_relay_log"), callback=self.on_open(DATA_DIR / "relay.log")), None,
+            rumps.MenuItem(i18n.t("menu.about"), callback=self.on_welcome),
             rumps.MenuItem(i18n.t("menu.quit"), callback=self.on_quit),
         ]
 
@@ -601,19 +602,22 @@ class YesDev(rumps.App):
                 self._size_icon(icon_path(state))
                 self._icon_state = state
 
-            bits = [i18n.t("menu.status", state=self.state_text())]
+            bits = [self.state_text()]
             if self.resume_at:
                 left = max(0, int((self.resume_at - datetime.now()).total_seconds()))
                 bits.append(i18n.t("menu.resume_in", seconds=left))
             elif self.disarm_at and not self.paused_reason:
                 left = int((self.disarm_at - datetime.now()).total_seconds() // 60) + 1
                 bits.append(i18n.t("menu.minutes_left", minutes=left))
-            self.mi_status.title = "  -  ".join(bits)
-            self.mi_count.title = i18n.t("menu.approved", count=self.approvals)
+            bits.append(i18n.t("menu.approved_inline", count=self.approvals))
+            self.mi_status.title = " · ".join(bits)
 
             trusted = is_trusted()
             self.mi_access.title = (i18n.t("menu.access.granted") if trusted
                                     else i18n.t("menu.access.missing"))
+            # Granted is the normal state, so it does not need a permanent row.
+            # The row comes back by itself the moment the permission is missing.
+            self.mi_access.hidden = trusted
 
             self.mi_on.state = 1 if (self.cfg["enabled"] and not self.paused_reason) else 0
             self.mi_relay.title = self.relay_status_text()

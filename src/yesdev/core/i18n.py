@@ -207,6 +207,10 @@ STRINGS: dict[str, dict[str, str]] = {
         EN: "Approved: {count}",
         ZH: "已批准：{count} 次",
     },
+    "menu.approved_inline": {
+        EN: "{count} approved",
+        ZH: "已批准 {count} 次",
+    },
     "menu.access.checking": {
         EN: "Accessibility: checking",
         ZH: "辅助功能：检查中",
@@ -223,9 +227,9 @@ STRINGS: dict[str, dict[str, str]] = {
         EN: "On",
         ZH: "已开启",
     },
-    "menu.welcome": {
-        EN: "Welcome…",
-        ZH: "欢迎页…",
+    "menu.about": {
+        EN: "About",
+        ZH: "关于",
     },
     "menu.settings": {
         EN: "Settings…",
