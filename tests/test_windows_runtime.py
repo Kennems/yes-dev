@@ -16,7 +16,7 @@ from unittest.mock import Mock, patch
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
-from windows_runtime import Native, independent, read_json
+from yesdev.platforms.windows import Native, independent, read_json
 
 
 class LaunchPolicyTests(unittest.TestCase):
@@ -41,7 +41,7 @@ class LaunchPolicyTests(unittest.TestCase):
 @unittest.skipUnless(sys.platform == "win32", "Windows process and Explorer APIs")
 class RuntimeProcessTests(unittest.TestCase):
     def setUp(self):
-        from watcher_supervisor import Windows, WorkerJob
+        from yesdev.relay.supervisor import Windows, WorkerJob
         self.temp = tempfile.TemporaryDirectory(prefix="yesdev-runtime-test-")
         self.root = Path(self.temp.name)
         self.data = self.root / "diagnostics"
@@ -92,7 +92,7 @@ class RuntimeProcessTests(unittest.TestCase):
 from pathlib import Path
 import os, sys, time, threading
 sys.path.insert(0, {str(REPO)!r})
-from windows_runtime import run
+from yesdev.platforms.windows import run
 ROOT = Path({str(self.root)!r})
 if __name__ == "__main__":
     code = run(Path(__file__), data_dir=ROOT / "diagnostics")
@@ -210,7 +210,7 @@ class TrayLifecycleTests(unittest.TestCase):
         with tempfile.TemporaryDirectory(prefix="yesdev-missing-runtime-") as folder:
             root = Path(folder)
             entry = root / "yes_dev.pyw"
-            entry.write_bytes((REPO / "yes_dev.pyw").read_bytes())
+            entry.write_bytes((REPO / "src/yesdev/platforms/windows_app.py").read_bytes())
             env = dict(os.environ, LOCALAPPDATA=folder, PYTHONPATH="")
             result = subprocess.run([sys.executable, str(entry)], cwd=folder, env=env,
                                     stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL, timeout=10,
@@ -219,7 +219,7 @@ class TrayLifecycleTests(unittest.TestCase):
             self.assertIn("windows_runtime", (root / "YesDev" / "bootstrap-error.log").read_text(encoding="utf-8"))
 
     def test_session_end_and_tray_stop_are_recorded_without_sending_os_messages(self):
-        loader = importlib.machinery.SourceFileLoader("tray_lifecycle_test", str(REPO / "yes_dev.pyw"))
+        loader = importlib.machinery.SourceFileLoader("tray_lifecycle_test", str(REPO / "src/yesdev/platforms/windows_app.py"))
         module = importlib.util.module_from_spec(importlib.util.spec_from_loader(loader.name, loader))
         loader.exec_module(module)
         life = Mock()

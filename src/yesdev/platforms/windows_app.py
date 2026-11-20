@@ -39,16 +39,32 @@ if __name__ == "__main__":
 import pystray
 from PIL import Image, ImageDraw
 
-import puffs        # the cloud artwork; the status icon is the app's own cloud
+from yesdev import _proc as proc
+from yesdev.core import i18n
+from yesdev.ui import puffs        # the cloud artwork; the status icon is the app's own cloud
 from yesdev.relay.relay_windows import RelayManager
 
 APP_NAME = "Yes, Dev"
 APP_SLUG = "yes-dev"
 
-BASE = Path(__file__).resolve().parent
-# BASE is kept for the PowerShell engine; package imports need no path surgery.   # so `import puffs` works however we were launched
+def _find_base() -> Path:
+    """Directory that holds watcher.ps1.
+
+    In a source checkout that is the repository root; in the portable package
+    it is ``app/``. Both put this module at ``<base>/yesdev/platforms/``, so the
+    PowerShell engine is found by looking upward for the script itself rather
+    than by counting parents.
+    """
+    here = Path(__file__).resolve()
+    for parent in here.parents:
+        if (parent / "watcher.ps1").is_file():
+            return parent
+    return here.parents[2]
+
+
+BASE = _find_base()
 WATCHER = BASE / "watcher.ps1"
-SUPERVISOR = BASE / "watcher_supervisor.py"
+SUPERVISOR = "yesdev.relay.supervisor"
 DATA_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "YesDev"
 CONFIG_PATH = DATA_DIR / "config.json"
 LOG_PATH = DATA_DIR / f"{APP_SLUG}.log"
@@ -93,17 +109,21 @@ DEFAULTS = {
 
 BURST_WINDOW = 60.0    # seconds
 BURST_COOLDOWN = 60.0  # auto-resume after this long, rather than stranding agents
-BURST_CHOICES = [("Off", 0), ("30 / min", 30), ("60 / min", 60), ("120 / min", 120)]
-BURST_ACTIONS = [("Ask me first (5s)", "ask"), ("Stop silently", "stop")]
-BURST_DIALOG = BASE / "burst_dialog.py"
+BURST_CHOICES = [(i18n.t("windows.burst.off"), 0), (i18n.t("windows.burst.30"), 30),
+                 (i18n.t("windows.burst.60"), 60), (i18n.t("windows.burst.120"), 120)]
+BURST_ACTIONS = [(i18n.t("windows.burst_action.ask"), "ask"),
+                 (i18n.t("windows.burst_action.stop"), "stop")]
+BURST_DIALOG = "yesdev.ui.burst"
 ALLOW_HOUR = 3600.0
 
-POLL_CHOICES = [("Snappy (150ms)", 150), ("Normal (250ms)", 250), ("Relaxed (750ms)", 750)]
-ARM_CHOICES = [("Until I turn it off", 0), ("15 minutes", 15), ("1 hour", 60), ("4 hours", 240)]
+POLL_CHOICES = [(i18n.t("windows.poll.snappy"), 150), (i18n.t("windows.poll.normal"), 250),
+                (i18n.t("windows.poll.relaxed"), 750)]
+ARM_CHOICES = [(i18n.t("windows.arm.until_off"), 0), (i18n.t("windows.arm.15m"), 15),
+               (i18n.t("windows.arm.1h"), 60), (i18n.t("windows.arm.4h"), 240)]
 NOTIFY_CHOICES = [
-    ("Floating puffs", "puffs"),
-    ("Toast card", "toast"),
-    ("Silent", "none"),
+    (i18n.t("settings.notify.puffs"), "puffs"),
+    (i18n.t("settings.notify.toast"), "toast"),
+    (i18n.t("settings.notify.none"), "none"),
 ]
 
 
@@ -267,8 +287,7 @@ class YesDev:
         if self.engine_running():
             return
         browsers = "chrome,msedge" if self.cfg["include_edge"] else "chrome"
-        args = [
-            sys.executable, str(SUPERVISOR),
+        args = proc.module_args(SUPERVISOR) + [
             "-IntervalMs", str(self.cfg["poll_ms"]),
             "-LogPath", str(LOG_PATH),
             "-BrowserProcess", browsers,
@@ -334,14 +353,14 @@ class YesDev:
                 self.paused_reason = None
                 self.resume_at = None
                 self.recent.clear()
-                self.notify(f"{APP_NAME} is back on")
+                self.notify(i18n.t("notify.back_on", app=APP_NAME))
 
             if self.cfg["enabled"] and not self.paused_reason:
                 if not self.engine_running():
                     self.start_engine()          # first run, or engine died - restart it
                 if self.disarm_at and datetime.now() >= self.disarm_at:
                     self._pause("timer expired")
-                    self.notify(f"Disarmed after {self.cfg['arm_minutes']} min")
+                    self.notify(i18n.t("notify.disarmed", minutes=self.cfg["arm_minutes"]))
             self._read_log()
             self.sync_relay()
 
@@ -399,8 +418,8 @@ class YesDev:
         the user with a short deadline - deciding nothing means stop."""
         if self.cfg["burst_action"] != "ask":
             self._pause("burst guard", resume_after=BURST_COOLDOWN)
-            self.notify(f"Paused: {count} approvals in under a minute. "
-                        f"Resuming automatically in {int(BURST_COOLDOWN)}s.")
+            self.notify(i18n.t("notify.burst_paused", count=count,
+                               seconds=int(BURST_COOLDOWN)))
             return
 
         log(f"burst of {count} - asking the user")
@@ -409,9 +428,9 @@ class YesDev:
             pyw = Path(sys.executable)
             exe = pyw.with_name("pythonw.exe") if pyw.with_name("pythonw.exe").exists() else pyw
             done = subprocess.run(
-                [str(exe), str(BURST_DIALOG), str(count), APP_NAME],
+                [str(exe), "-m", BURST_DIALOG, str(count), APP_NAME],
                 capture_output=True, text=True, timeout=30,
-                creationflags=CREATE_NO_WINDOW)
+                creationflags=CREATE_NO_WINDOW, env=proc.child_env())
             choice = (done.stdout or "").strip().splitlines()[-1:] or ["stop"]
             choice = choice[0]
         except Exception as exc:
@@ -421,11 +440,11 @@ class YesDev:
             self.allow_until = datetime.now() + timedelta(seconds=ALLOW_HOUR)
             self.recent.clear()
             log("  user allowed bursts for one hour")
-            self.notify(f"{APP_NAME} will keep approving for one hour")
+            self.notify(i18n.t("notify.allow_hour", app=APP_NAME))
         else:
             log("  user stopped the app (or let the timer run out)")
             self._pause("stopped after burst")   # no auto-resume: this was deliberate
-            self.notify(f"{APP_NAME} stopped. Turn it back on from the tray when ready.")
+            self.notify(i18n.t("notify.stopped_tray", app=APP_NAME))
 
         self.refresh()
 
@@ -434,7 +453,8 @@ class YesDev:
         style = self.cfg["notify_style"]
         log(f"announce hits={hits} style={style}")
         if style == "toast":
-            self.notify(f"Approved {hits} debugging request{'s' if hits > 1 else ''}")
+            self.notify(i18n.t("notify.approved_many" if hits > 1 else "notify.approved_one",
+                               count=hits))
         elif style == "puffs":
             overlay = self.puff_overlay()
             if overlay is not None:
@@ -532,7 +552,9 @@ class YesDev:
             return
         try:
             self.icon.icon = self.make_image()
-            self.icon.title = f"{APP_NAME} - {self.state()} - {self.approvals} approved"
+            self.icon.title = i18n.t("windows.tray_title", app=APP_NAME,
+                                     state=i18n.t(f"state.{self.state()}"),
+                                     count=self.approvals)
             self.icon.update_menu()
         except Exception:
             pass
@@ -600,12 +622,13 @@ class YesDev:
         self.refresh()
 
     def status_text(self, _item) -> str:
-        bits = [f"Status: {self.state()}"]
+        bits = [i18n.t("menu.status", state=i18n.t(f"state.{self.state()}"))]
         if self.resume_at:
-            bits.append(f"back in {max(0, int((self.resume_at - datetime.now()).total_seconds()))}s")
+            bits.append(i18n.t("menu.resume_in",
+                               seconds=max(0, int((self.resume_at - datetime.now()).total_seconds()))))
         elif self.disarm_at and not self.paused_reason:
             left = int((self.disarm_at - datetime.now()).total_seconds() // 60) + 1
-            bits.append(f"{left} min left")
+            bits.append(i18n.t("menu.minutes_left", minutes=left))
         return "  -  ".join(bits)
 
     def open_path(self, path: Path):
@@ -635,29 +658,29 @@ class YesDev:
         M, I = pystray.Menu, pystray.MenuItem
         return M(
             I(self.status_text, None, enabled=False),
-            I(lambda _: f"Approved: {self.approvals}", None, enabled=False),
+            I(lambda _: i18n.t("menu.approved", count=self.approvals), None, enabled=False),
             M.SEPARATOR,
-            I("On", lambda _: self.toggle_enabled(),
+            I(i18n.t("menu.on"), lambda _: self.toggle_enabled(),
               checked=lambda _: self.cfg["enabled"] and not self.paused_reason),
-            I("Start at login", lambda _: self.toggle_autostart(),
+            I(i18n.t("windows.start_at_login"), lambda _: self.toggle_autostart(),
               checked=lambda _: self.autostart_on()),
             M.SEPARATOR,
-            I("Stay on for", M(*[
+            I(i18n.t("windows.stay_on"), M(*[
                 I(label, lambda _, v=val: self.set_value("arm_minutes", v)(),
                   checked=lambda _, v=val: self.cfg["arm_minutes"] == v, radio=True)
                 for label, val in ARM_CHOICES
             ])),
-            I("Speed", M(*[
+            I(i18n.t("windows.speed"), M(*[
                 I(label, self.set_value("poll_ms", val, restart=True),
                   checked=lambda _, v=val: self.cfg["poll_ms"] == v, radio=True)
                 for label, val in POLL_CHOICES
             ])),
-            I("Approve notice", M(*[
+            I(i18n.t("windows.approve_notice"), M(*[
                 I(label, lambda _, v=val: self.set_value("notify_style", v)(),
                   checked=lambda _, v=val: self.cfg["notify_style"] == v, radio=True)
                 for label, val in NOTIFY_CHOICES
             ])),
-            I("Pause on burst", M(
+            I(i18n.t("windows.pause_on_burst"), M(
                 *[I(label, lambda _, v=val: self.set_value("burst_limit", v)(),
                     checked=lambda _, v=val: self.cfg["burst_limit"] == v, radio=True)
                   for label, val in BURST_CHOICES],
@@ -667,36 +690,36 @@ class YesDev:
                     radio=True, enabled=lambda _: bool(self.cfg["burst_limit"]))
                   for label, val in BURST_ACTIONS],
             )),
-            I("Options", M(
-                I("Keep one Chrome connection open",
+            I(i18n.t("windows.options"), M(
+                I(i18n.t("windows.relay_chrome"),
                   lambda _: self.toggle("relay_hold")(),
                   checked=lambda _: self.cfg["relay_hold"]),
                 I(lambda _: "Chrome " + self.relay.status_text(), None, enabled=False),
-                I("Keep one Edge connection open",
+                I(i18n.t("windows.relay_edge"),
                   lambda _: self.toggle("edge_relay_hold")(),
                   checked=lambda _: self.cfg["edge_relay_hold"]),
                 I(lambda _: "Edge " + self.edge_relay.status_text(), None, enabled=False),
-                I("Observe only (log, don't click)",
+                I(i18n.t("windows.observe_only"),
                   lambda _: self.toggle("observe_only", restart=True)(),
                   checked=lambda _: self.cfg["observe_only"]),
-                I("Include Microsoft Edge",
+                I(i18n.t("windows.include_edge"),
                   lambda _: self.toggle("include_edge", restart=True)(),
                   checked=lambda _: self.cfg["include_edge"]),
             )),
             M.SEPARATOR,
-            I("Open log", self.open_path(LOG_PATH)),
-            I("Open relay log", self.open_path(DATA_DIR / "relay.log")),
-            I("Open Edge relay log", self.open_path(DATA_DIR / "edge-relay" / "relay.log")),
-            I("Open startup/exit records", self.open_path(DATA_DIR / "lifecycle")),
-            I("Open config", self.open_path(CONFIG_PATH)),
-            I("Quit", lambda _: self.quit()),
+            I(i18n.t("windows.open_log"), self.open_path(LOG_PATH)),
+            I(i18n.t("windows.open_relay_log"), self.open_path(DATA_DIR / "relay.log")),
+            I(i18n.t("windows.open_edge_relay_log"), self.open_path(DATA_DIR / "edge-relay" / "relay.log")),
+            I(i18n.t("windows.open_lifecycle"), self.open_path(DATA_DIR / "lifecycle")),
+            I(i18n.t("windows.open_config"), self.open_path(CONFIG_PATH)),
+            I(i18n.t("windows.quit"), lambda _: self.quit()),
         )
 
     def run(self) -> None:
         self.cfg.save()
         self.icon = pystray.Icon(
             APP_SLUG, self.make_image(),
-            f"{APP_NAME} - starting", self.build_menu(),
+            i18n.t("windows.starting", app=APP_NAME), self.build_menu(),
         )
         threading.Thread(target=self.monitor, daemon=True).start()
         if self.lifecycle:

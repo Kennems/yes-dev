@@ -10,10 +10,8 @@ import unittest
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-import relay_windows as windows
-
-
+sys.path.insert(0, str(ROOT / "src"))
+from yesdev.relay import relay_windows as windows
 class Child:
     def __init__(self, command, pid):
         self.command, self.pid = command, pid
@@ -283,7 +281,7 @@ class ChildInterpreterTests(unittest.TestCase):
                 patch.dict(os.environ, {'PYTHONPATH': 'prior-path'}):
             executable, environment = windows.child_python()
             self.assertEqual(executable, r'C:\Python\python.exe')
-            self.assertEqual(environment['PYTHONPATH'].split(os.pathsep),
+            self.assertEqual(environment['PYTHONPATH'].split(';'),
                              [r'C:\qa\venv\Lib\site-packages', 'prior-path'])
             self.assertEqual(os.environ['PYTHONPATH'], 'prior-path')
         self.assertEqual(dict(os.environ), original)

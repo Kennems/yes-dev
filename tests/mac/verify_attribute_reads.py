@@ -10,7 +10,7 @@ import shlex
 import subprocess
 import sys
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
 
 
 def main():
@@ -33,7 +33,7 @@ def main():
     import objc
     from ApplicationServices import AXUIElementCreateApplication, AXUIElementCopyAttributeValue
     from CoreFoundation import CFEqual
-    from watcher_mac import _copy_attribute
+    from yesdev.dialogs.watcher import _copy_attribute
 
     app = AXUIElementCreateApplication(args.browser_pid)
     records = []

@@ -48,7 +48,7 @@ from pathlib import Path
 from yesdev.platforms.mac import DATA_DIR, ensure_data_dir, is_trusted  # noqa: E402
 
 try:
-    import watcher_mac as wm   # the one definition of what the consent sheet looks like
+    from yesdev.dialogs import watcher as wm   # the one definition of what the consent sheet looks like
     from AppKit import (
         NSApplication,
         NSApplicationActivateIgnoringOtherApps,

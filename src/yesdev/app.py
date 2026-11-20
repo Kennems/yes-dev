@@ -37,6 +37,7 @@ from datetime import datetime, timedelta
 from pathlib import Path
 
 from yesdev import _proc as proc
+from yesdev.core import i18n
 
 try:
     import rumps
@@ -351,20 +352,21 @@ class YesDev(rumps.App):
 
     def relay_status_text(self) -> str:
         if not self.cfg.get("relay_enabled"):
-            return "Fast focus: off"
+            return i18n.t("menu.relay.off")
         if not self.guard_wanted():
-            return "Fast focus: paused while approval is off or observing"
+            return i18n.t("menu.relay.blocked")
         try:
             status = json.loads(RELAY_STATUS.read_text())
             if self.relay is not None and status.get("pid") == self.relay.pid:
                 if status.get("last_error"):
-                    return "Fast focus: " + status["last_error"]
+                    return i18n.t("menu.relay.error", error=status["last_error"])
                 if status.get("state") == "listening" and self.relay.poll() is None:
-                    held = " · Chrome connection held" if status.get("held") else ""
-                    return f"Fast focus: ready{held} · {status.get('connections', 0)} connected"
+                    held = i18n.t("menu.relay.held_suffix") if status.get("held") else ""
+                    return i18n.t("menu.relay.ready", held=held,
+                                  count=status.get("connections", 0))
         except (OSError, ValueError):
             pass
-        return "Fast focus: starting — check the relay log if this persists"
+        return i18n.t("menu.relay.starting")
 
     # ---------- background loop ----------
 
@@ -385,14 +387,14 @@ class YesDev(rumps.App):
                 self.paused_reason = None
                 self.resume_at = None
                 self.recent.clear()
-                self.notify(f"{APP_NAME} is back on")
+                self.notify(i18n.t("notify.back_on", app=APP_NAME))
 
             if self.cfg["enabled"] and not self.paused_reason:
                 if not self.engine_running():
                     self.start_engine()      # first run, or engine died - restart it
                 if self.disarm_at and datetime.now() >= self.disarm_at:
                     self._pause("timer expired")
-                    self.notify(f"Disarmed after {self.cfg['arm_minutes']} min")
+                    self.notify(i18n.t("notify.disarmed", minutes=self.cfg["arm_minutes"]))
             self.sync_guard()        # start it, or restart it if it died
             self._read_log()
             self.refresh()
@@ -444,8 +446,8 @@ class YesDev(rumps.App):
         the user with a short deadline - deciding nothing means stop."""
         if self.cfg["burst_action"] != "ask":
             self._pause("burst guard", resume_after=BURST_COOLDOWN)
-            self.notify(f"Paused: {count} approvals in under a minute. "
-                        f"Resuming automatically in {int(BURST_COOLDOWN)}s.")
+            self.notify(i18n.t("notify.burst_paused", count=count,
+                               seconds=int(BURST_COOLDOWN)))
             return
 
         if self._asking is not None:
@@ -485,18 +487,19 @@ class YesDev(rumps.App):
             self.allow_until = datetime.now() + timedelta(seconds=ALLOW_HOUR)
             self.recent.clear()
             log("  user allowed bursts for one hour")
-            self.notify(f"{APP_NAME} will keep approving for one hour")
+            self.notify(i18n.t("notify.allow_hour", app=APP_NAME))
         else:
             log("  user stopped the app (or let the timer run out)")
             self._pause("stopped after burst")   # no auto-resume: deliberate
-            self.notify(f"{APP_NAME} stopped. Turn it back on from the menu when ready.")
+            self.notify(i18n.t("notify.stopped_menu", app=APP_NAME))
         self.refresh()
 
     def announce(self, hits: int) -> None:
         """Routine approvals: a puff per approval, a toast, or nothing."""
         style = self.cfg["notify_style"]
         if style == "toast":
-            self.notify(f"Approved {hits} debugging request{'s' if hits > 1 else ''}")
+            self.notify(i18n.t("notify.approved_many" if hits > 1 else "notify.approved_one",
+                               count=hits))
         elif style == "puffs":
             overlay = self.puff_overlay()
             if overlay is not None:
@@ -535,8 +538,9 @@ class YesDev(rumps.App):
 
     def state_text(self) -> str:
         if self.paused_reason:
-            return f"paused ({self.paused_reason})"
-        return self.state()
+            reason = i18n.t(f"reason.{self.paused_reason.replace(' ', '_')}")
+            return i18n.t("menu.paused", reason=reason)
+        return i18n.t(f"state.{self.state()}")
 
     def notify(self, message: str) -> None:
         """A user-visible notification, when the platform allows one.
@@ -553,18 +557,18 @@ class YesDev(rumps.App):
     # ---------- menu ----------
 
     def _build_menu(self) -> None:
-        self.mi_status = rumps.MenuItem("Status: starting")
-        self.mi_count = rumps.MenuItem("Approved: 0")
-        self.mi_access = rumps.MenuItem("Accessibility: checking", callback=self.on_grant_accessibility)
-        self.mi_on = rumps.MenuItem("On", callback=self.on_toggle_enabled)
-        self.mi_relay = rumps.MenuItem("Fast focus: off")
+        self.mi_status = rumps.MenuItem(i18n.t("menu.status.starting"))
+        self.mi_count = rumps.MenuItem(i18n.t("menu.approved", count=0))
+        self.mi_access = rumps.MenuItem(i18n.t("menu.access.checking"), callback=self.on_grant_accessibility)
+        self.mi_on = rumps.MenuItem(i18n.t("menu.on"), callback=self.on_toggle_enabled)
+        self.mi_relay = rumps.MenuItem(i18n.t("menu.relay.off"))
         self.menu = [
             self.mi_status, self.mi_count, self.mi_access, None, self.mi_on,
-            rumps.MenuItem("Welcome…", callback=self.on_welcome),
-            rumps.MenuItem("Settings…", callback=self.on_settings), self.mi_relay, None,
-            rumps.MenuItem("Open log", callback=self.on_open(LOG_PATH)),
-            rumps.MenuItem("Open relay log", callback=self.on_open(DATA_DIR / "relay.log")), None,
-            rumps.MenuItem("Quit", callback=self.on_quit),
+            rumps.MenuItem(i18n.t("menu.welcome"), callback=self.on_welcome),
+            rumps.MenuItem(i18n.t("menu.settings"), callback=self.on_settings), self.mi_relay, None,
+            rumps.MenuItem(i18n.t("menu.open_log"), callback=self.on_open(LOG_PATH)),
+            rumps.MenuItem(i18n.t("menu.open_relay_log"), callback=self.on_open(DATA_DIR / "relay.log")), None,
+            rumps.MenuItem(i18n.t("menu.quit"), callback=self.on_quit),
         ]
 
     def _size_icon(self, path: str) -> None:
@@ -597,19 +601,19 @@ class YesDev(rumps.App):
                 self._size_icon(icon_path(state))
                 self._icon_state = state
 
-            bits = [f"Status: {self.state_text()}"]
+            bits = [i18n.t("menu.status", state=self.state_text())]
             if self.resume_at:
                 left = max(0, int((self.resume_at - datetime.now()).total_seconds()))
-                bits.append(f"back in {left}s")
+                bits.append(i18n.t("menu.resume_in", seconds=left))
             elif self.disarm_at and not self.paused_reason:
                 left = int((self.disarm_at - datetime.now()).total_seconds() // 60) + 1
-                bits.append(f"{left} min left")
+                bits.append(i18n.t("menu.minutes_left", minutes=left))
             self.mi_status.title = "  -  ".join(bits)
-            self.mi_count.title = f"Approved: {self.approvals}"
+            self.mi_count.title = i18n.t("menu.approved", count=self.approvals)
 
             trusted = is_trusted()
-            self.mi_access.title = ("Accessibility: granted" if trusted
-                                    else "Accessibility: NOT granted - click to fix")
+            self.mi_access.title = (i18n.t("menu.access.granted") if trusted
+                                    else i18n.t("menu.access.missing"))
 
             self.mi_on.state = 1 if (self.cfg["enabled"] and not self.paused_reason) else 0
             self.mi_relay.title = self.relay_status_text()

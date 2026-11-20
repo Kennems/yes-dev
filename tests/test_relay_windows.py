@@ -14,10 +14,8 @@ import unittest
 from unittest.mock import Mock, patch
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-import relay_windows as windows
-
-
+sys.path.insert(0, str(ROOT / "src"))
+from yesdev.relay import relay_windows as windows
 class ParentIdentityTests(unittest.TestCase):
     def native(self, creation=100, wait=258):
         native = Mock()
@@ -224,7 +222,11 @@ class ManagerTests(unittest.TestCase):
 
 class StatusTests(unittest.TestCase):
     def test_import_works_without_optional_transport(self):
-        command = [sys.executable, "-E", "-S", "-c", "import relay_windows; assert 'cdp_relay' not in __import__('sys').modules; assert 'websockets' not in __import__('sys').modules"]
+        command = [sys.executable, "-E", "-S", "-c",
+                   "import sys; sys.path.insert(0, 'src'); "
+                   "from yesdev.relay import relay_windows; "
+                   "assert 'yesdev.relay.cdp_relay' not in sys.modules; "
+                   "assert 'websockets' not in sys.modules"]
         completed = subprocess.run(command, cwd=ROOT, capture_output=True, timeout=5)
         self.assertEqual(completed.returncode, 0, completed.stderr.decode())
 
@@ -366,7 +368,7 @@ class HostTests(unittest.IsolatedAsyncioTestCase):
         parent = subprocess.Popen([sys.executable, "-c", "import time; time.sleep(20)"],
                                   creationflags=subprocess.CREATE_NO_WINDOW)
         try:
-            from windows_runtime import Native
+            from yesdev.platforms.windows import Native
             creation = Native().creation(parent._handle)
             child, status, _, _ = self.launch(parent_pid=parent.pid, creation=creation)
             await self.wait_status(status, lambda s: s.get("state") == "listening")

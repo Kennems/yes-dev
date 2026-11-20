@@ -16,7 +16,7 @@ from websockets.asyncio.client import connect
 from websockets.exceptions import ConnectionClosed, InvalidStatus
 
 from windows_relay_live import PrivateChrome, NoFocus, Cdp, eventually
-from cdp_multiplex import MultiplexRelay
+from yesdev.relay.cdp_multiplex import MultiplexRelay
 
 
 class Peer:

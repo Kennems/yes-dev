@@ -13,7 +13,7 @@ import sys
 import traceback
 
 from windows_relay_live import PrivateChrome, Cdp, NoFocus, eventually, http_request
-from cdp_multiplex import MultiplexRelay
+from yesdev.relay.cdp_multiplex import MultiplexRelay
 
 
 async def check_browser(args, browser, relay, focus):

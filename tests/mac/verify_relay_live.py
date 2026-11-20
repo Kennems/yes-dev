@@ -24,8 +24,8 @@ from websockets.asyncio.client import connect
 
 ROOT = Path(__file__).resolve().parents[2]
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
-sys.path.insert(0, str(ROOT))
-from cdp_relay import RELAY_PATH
+sys.path.insert(0, str(ROOT / "src"))
+from yesdev.relay.cdp_relay import RELAY_PATH
 
 
 async def run(args):

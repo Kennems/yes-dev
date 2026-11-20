@@ -7,8 +7,8 @@ permission the engine needs, asks for it, and watches the grant until it lands -
 no restart, because AXIsProcessTrusted is re-read on every poll.
 
 Same construction rules as settings_mac.py: plain NSView frames, one owner, no
-Auto Layout, everything on the main thread. Text is Chinese because this build
-is installed for a zh-CN user; the menu keeps upstream's English labels.
+Auto Layout, everything on the main thread. All text comes from core/i18n, so
+the window follows the system language like every other surface.
 """
 from __future__ import annotations
 
@@ -22,6 +22,7 @@ from AppKit import (
 )
 from Foundation import NSObject, NSTimer
 
+from yesdev.core import i18n
 from yesdev.platforms import mac as platform_mac
 WELCOME_WIDTH = 560
 WELCOME_HEIGHT = 620
@@ -68,44 +69,36 @@ class WelcomeWindow:
             content.addSubview_(icon)
 
         self.label(content, "Yes, Dev", 112, 562, 420, 32, size=26, bold=True)
-        self.label(content, "自动批准 Chrome 的「要允许远程调试吗？」提示",
+        self.label(content, i18n.t("welcome.subtitle"),
                    112, 532, 420, 22, size=13, secondary=True)
         self.separator(content, 32, 512, 496)
 
         # --- what it does -------------------------------------------------
-        self.label(content, "它能做什么", 32, 484, 496, 22, size=13, bold=True)
-        self.wrapped(content,
-                     "Yes, Dev 常驻菜单栏，自动点掉 Chrome / Edge 的远程调试授权弹窗，"
-                     "让你的自动化工具（Playwright、MCP、AI Agent）直接连上浏览器，"
-                     "不用每次手动点「允许」。",
-                     32, 428, 496, 50)
-        self.label(content, "只匹配这一个特定弹窗，不会点击网页里的「允许」按钮。",
+        self.label(content, i18n.t("welcome.what.title"), 32, 484, 496, 22, size=13, bold=True)
+        self.wrapped(content, i18n.t("welcome.what.body"), 32, 428, 496, 50)
+        self.label(content, i18n.t("welcome.what.only_dialog"),
                    32, 400, 496, 22, size=12.5, secondary=True)
-        self.label(content, "批准后默认显示云朵提示，可改成静音；随时可以一键关闭。",
+        self.label(content, i18n.t("welcome.what.notice"),
                    32, 376, 496, 22, size=12.5, secondary=True)
-        self.label(content, "每分钟超过 60 次会先询问，避免失控刷屏。",
+        self.label(content, i18n.t("welcome.what.burst"),
                    32, 352, 496, 22, size=12.5, secondary=True)
 
         # --- permissions --------------------------------------------------
-        self.label(content, "需要的权限", 32, 316, 496, 22, size=13, bold=True)
-        self.label(content, "辅助功能（Accessibility）", 32, 288, 496, 22, size=13, bold=True)
-        self.wrapped(content,
-                     "用来读取并点击 Chrome 的授权对话框。除此之外不读网页内容、"
-                     "不读键盘输入、不联网、不上传任何数据。",
-                     32, 238, 496, 44)
-        self.status = self.label(content, "未开启", 32, 202, 200, 24, size=13, bold=True)
+        self.label(content, i18n.t("welcome.permission.title"), 32, 316, 496, 22, size=13, bold=True)
+        self.label(content, i18n.t("welcome.permission.name"), 32, 288, 496, 22, size=13, bold=True)
+        self.wrapped(content, i18n.t("welcome.permission.body"), 32, 238, 496, 44)
+        self.status = self.label(content, i18n.t("welcome.status.off"),
+                                 32, 202, 200, 24, size=13, bold=True)
         self.status.setTextColor_(NSColor.systemRedColor())
 
         # --- actions ------------------------------------------------------
-        self.grant_button = self.button(content, "一键开启辅助功能", "grant:", 348, 148, 184, 36)
+        self.grant_button = self.button(content, i18n.t("welcome.grant"), "grant:",
+                                        348, 148, 184, 36)
         self.grant_button.setKeyEquivalent_("\r")
-        self.button(content, "稍后再说", "later:", 32, 148, 120, 36).setKeyEquivalent_("\x1b")
+        self.button(content, i18n.t("welcome.later"), "later:", 32, 148, 120, 36).setKeyEquivalent_("\x1b")
 
-        self.hint = self.wrapped(
-            content,
-            "点击后 macOS 会请求授权并打开「系统设置 → 隐私与安全性 → 辅助功能」，"
-            "把 Yes, Dev 的开关打开即可，这里会自动变成「已开启」。",
-            32, 84, 496, 46, size=12.5, secondary=True)
+        self.hint = self.wrapped(content, i18n.t("welcome.hint.pending"),
+                                 32, 84, 496, 46, size=12.5, secondary=True)
 
         self.poll()
 
@@ -194,18 +187,14 @@ class WelcomeWindow:
             return
         self._trusted = trusted
         if trusted:
-            self.status.setStringValue_("已开启")
+            self.status.setStringValue_(i18n.t("welcome.status.on"))
             self.status.setTextColor_(NSColor.systemGreenColor())
-            self.grant_button.setTitle_("已完成")
+            self.grant_button.setTitle_(i18n.t("welcome.done"))
             self.grant_button.setEnabled_(False)
-            self.hint.setStringValue_(
-                "授权已生效。关闭这个窗口，Yes, Dev 会立刻开始工作；"
-                "菜单栏的 Accessibility 状态也会同步更新。")
+            self.hint.setStringValue_(i18n.t("welcome.hint.granted"))
         else:
-            self.status.setStringValue_("未开启")
+            self.status.setStringValue_(i18n.t("welcome.status.off"))
             self.status.setTextColor_(NSColor.systemRedColor())
-            self.grant_button.setTitle_("一键开启辅助功能")
+            self.grant_button.setTitle_(i18n.t("welcome.grant"))
             self.grant_button.setEnabled_(True)
-            self.hint.setStringValue_(
-                "点击后 macOS 会请求授权并打开「系统设置 → 隐私与安全性 → 辅助功能」，"
-                "把 Yes, Dev 的开关打开即可，这里会自动变成「已开启」。")
+            self.hint.setStringValue_(i18n.t("welcome.hint.pending"))

@@ -8,10 +8,8 @@ from pathlib import Path
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-import focus_guard_mac as guard_module
-
-
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+from yesdev.dialogs import focus_guard as guard_module
 class InputClock:
     """Input events and slow AX reads share a deterministic monotonic clock."""
 

@@ -28,10 +28,10 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent.parent
 if str(BASE) not in sys.path:
-    sys.path.insert(0, str(BASE))
+    sys.path.insert(0, str(BASE / "src"))
 
 try:
-    import watcher_mac as engine
+    from yesdev.dialogs import watcher as engine
 except Exception as exc:  # pyobjc / GUI stack missing on this host
     raise unittest.SkipTest(f"watcher_mac needs the macOS pyobjc stack: {exc!r}")
 

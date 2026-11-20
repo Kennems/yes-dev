@@ -14,8 +14,8 @@ import time
 
 from record_cdp_traffic import LaunchRun, disposable_pid, write_json
 from recon_cdp_live import Recon
-import watcher_mac as w
-from relay_mac import front_pid_with_window
+from yesdev.dialogs import watcher as w
+from yesdev.relay.relay_mac import front_pid_with_window
 from AppKit import NSRunningApplication, NSApplicationActivateIgnoringOtherApps
 from Quartz import (CGEventCreateKeyboardEvent, CGEventPostToPid, CGEventSetFlags,
                     CGEventKeyboardSetUnicodeString, kCGEventFlagMaskCommand)

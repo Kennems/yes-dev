@@ -10,7 +10,7 @@ import tempfile
 from types import SimpleNamespace
 
 repo = Path(__file__).resolve().parents[1]
-tree = ast.parse((repo / 'yes_dev.pyw').read_text(encoding='utf-8-sig'))
+tree = ast.parse((repo / 'src/yesdev/platforms/windows_app.py').read_text(encoding='utf-8-sig'))
 method = next(node for cls in tree.body if isinstance(cls, ast.ClassDef)
               for node in cls.body if isinstance(node, ast.FunctionDef) and node.name == '_read_log')
 event = b'2026-09-30 12:00:00.000 [ACTION] APPROVED; dialog dismissed\r\n'

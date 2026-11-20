@@ -15,9 +15,9 @@ import uuid
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-import early_focus_guard_mac as early
-from focus_protocol import AppIdentity, ArmGate
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+from yesdev.dialogs import focus_early as early
+from yesdev.dialogs.focus_protocol import AppIdentity, ArmGate
 from Foundation import NSDate, NSDefaultRunLoopMode, NSRunLoop
 
 

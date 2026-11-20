@@ -6,6 +6,8 @@ import os
 from pathlib import Path
 import tempfile
 
+from . import i18n
+
 DEFAULTS = {
     "enabled": True, "observe_only": False, "poll_ms": 250,
     "include_edge": False, "notify_style": "puffs", "burst_limit": 60,
@@ -14,37 +16,59 @@ DEFAULTS = {
     "relay_profile": str(Path.home() / "Library/Application Support/Google/Chrome"),
 }
 NUMBERS = {
-    "poll_ms": (100, 5000, "Check interval"),
-    "burst_limit": (0, 10000, "Approvals per minute"),
-    "arm_minutes": (0, 10080, "Stay on for"),
-    "relay_port": (1024, 65535, "Relay port"),
+    "poll_ms": (100, 5000, i18n.t("validation.poll_ms")),
+    "burst_limit": (0, 10000, i18n.t("validation.burst_limit")),
+    "arm_minutes": (0, 10080, i18n.t("validation.arm_minutes")),
+    "relay_port": (1024, 65535, i18n.t("validation.relay_port")),
+}
+
+# Field names as the user sees them, for validation errors.
+FIELD_NAMES = {
+    "enabled": "settings.enabled",
+    "observe_only": "settings.observe_only",
+    "include_edge": "settings.include_edge",
+    "diagnostics": "settings.diagnostics",
+    "relay_hold": "settings.relay_hold",
+    "start_at_login": "settings.start_at_login",
+    "notify_style": "settings.notify_style",
+    "burst_action": "settings.burst_action",
+    "quiet_focus": "settings.focus_mode",
+    "relay_enabled": "settings.focus_mode",
 }
 ENUMS = {"notify_style": {"puffs", "toast", "none"}, "burst_action": {"ask", "stop"}}
 BOOLS = {key for key, value in DEFAULTS.items() if type(value) is bool}
+
+
+def _field(key: str) -> str:
+    """Human-readable field name for a validation message."""
+    entry = FIELD_NAMES.get(key)
+    if entry:
+        return i18n.t(entry)
+    return key.replace("_", " ")
 
 
 def validate(values):
     result = dict(values)
     for key in BOOLS:
         if type(result.get(key)) is not bool:
-            raise ValueError(f"{key.replace('_', ' ').capitalize()} must be on or off.")
+            raise ValueError(i18n.t("error.bool", field=_field(key)))
     for key, (low, high, label) in NUMBERS.items():
         raw = str(result.get(key, "")).strip()
         if not raw.isdecimal() or len(raw) > 8 or not low <= int(raw) <= high:
-            raise ValueError(f"{label} must be a whole number from {low} to {high}.")
+            raise ValueError(i18n.t("error.number", field=label, low=low, high=high))
         result[key] = int(raw)
     for key, allowed in ENUMS.items():
         if result.get(key) not in allowed:
-            raise ValueError(f"Choose a valid {key.replace('_', ' ')}.")
+            raise ValueError(i18n.t("error.enum", field=_field(key)))
     profile = str(result.get("relay_profile", "")).strip()
     if not profile:
-        raise ValueError("Choose a Chrome data folder.")
+        raise ValueError(i18n.t("error.profile_missing"))
     result["relay_profile"] = str(Path(profile).expanduser().resolve())
     if result["relay_enabled"]:
         if not Path(result["relay_profile"]).is_dir():
-            raise ValueError("The Chrome data folder does not exist. Choose the folder containing Local State.")
+            raise ValueError(i18n.t("error.profile_missing_dir"))
         if not result["quiet_focus"]:
-            raise ValueError("Fast focus requires Quiet focus.")
+            raise ValueError(i18n.t("error.fast_needs_quiet"))
     return result
 
 

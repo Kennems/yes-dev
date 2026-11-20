@@ -12,7 +12,7 @@ import tempfile
 import traceback
 
 from windows_relay_live import PrivateChrome, NoFocus
-from cdp_multiplex import MultiplexRelay
+from yesdev.relay.cdp_multiplex import MultiplexRelay
 
 
 async def client(args, relay, number):

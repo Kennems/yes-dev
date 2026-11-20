@@ -11,10 +11,10 @@ import sys
 import tempfile
 import unittest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
 sys.path.insert(0, str(Path(__file__).resolve().parent))
-import cdp_relay
-from cdp_relay import Relay, RELAY_PATH
+from yesdev.relay import cdp_relay as cdp_relay
+from yesdev.relay.cdp_relay import Relay, RELAY_PATH
 from unittest.mock import patch
 from test_cdp_relay import RecordingFocus
 from websockets.asyncio.client import connect

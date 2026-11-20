@@ -69,7 +69,7 @@ async def call(ws, method='Browser.getVersion', params=None, id=1):
 async def run(args, report):
     report['desktop'] = private_desktop()
     sys.path.insert(0, str(args.repo))
-    from windows_runtime import Native
+    from yesdev.platforms.windows import Native
     from windows_relay_live import ChildJob
     root = args.output
     root.mkdir(parents=True, exist_ok=True)

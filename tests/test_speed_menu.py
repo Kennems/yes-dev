@@ -14,10 +14,10 @@ class SpeedMenuTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         repo = Path(__file__).resolve().parents[1]
-        loader = importlib.machinery.SourceFileLoader("yesdev_speed_test", str(repo / "yes_dev.pyw"))
+        loader = importlib.machinery.SourceFileLoader("yesdev_speed_test", str(repo / "src/yesdev/platforms/windows_app.py"))
         spec = importlib.util.spec_from_loader(loader.name, loader)
         cls.module = importlib.util.module_from_spec(spec)
-        with patch.object(sys, "path", [str(repo), *sys.path]):
+        with patch.object(sys, "path", [str(repo / "src"), *sys.path]):
             loader.exec_module(cls.module)
 
     def test_each_speed_saves_an_integer_and_passes_it_to_the_watcher(self):
@@ -29,7 +29,8 @@ class SpeedMenuTests(unittest.TestCase):
                 app = module.YesDev()
                 app.cfg["observe_only"] = True
                 menu = app.build_menu()
-                choices = next(item for item in menu.items if item.text == "Speed").submenu.items
+                speed = module.i18n.t("windows.speed")
+                choices = next(item for item in menu.items if item.text == speed).submenu.items
                 self.assertEqual(len(choices), 3)
                 for selected, (label, interval) in zip(choices, module.POLL_CHOICES):
                     with self.subTest(speed=label):

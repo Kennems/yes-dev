@@ -14,10 +14,10 @@ class RelayTrayTests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         repo = Path(__file__).resolve().parents[1]
-        loader = importlib.machinery.SourceFileLoader('yesdev_relay_tray_test', str(repo / 'yes_dev.pyw'))
+        loader = importlib.machinery.SourceFileLoader('yesdev_relay_tray_test', str(repo / 'src/yesdev/platforms/windows_app.py'))
         spec = importlib.util.spec_from_loader(loader.name, loader)
         cls.module = importlib.util.module_from_spec(spec)
-        with patch.object(sys, 'path', [str(repo), *sys.path]):
+        with patch.object(sys, 'path', [str(repo / 'src'), *sys.path]):
             loader.exec_module(cls.module)
 
     def setUp(self):
@@ -39,8 +39,10 @@ class RelayTrayTests(unittest.TestCase):
     def test_default_off_and_menu_toggle_does_not_restart_approvals(self):
         self.assertFalse(self.app.cfg['relay_hold'])
         menu = self.app.build_menu()
-        options = next(item for item in menu.items if item.text == 'Options').submenu
-        checkbox = next(item for item in options.items if item.text == 'Keep one Chrome connection open')
+        options = next(item for item in menu.items
+                       if item.text == self.module.i18n.t("windows.options")).submenu
+        checkbox = next(item for item in options.items
+                        if item.text == self.module.i18n.t("windows.relay_chrome"))
         self.assertFalse(checkbox.checked)
         with patch.object(self.app, 'restart_engine') as restart:
             checkbox(None)

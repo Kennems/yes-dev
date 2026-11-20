@@ -23,7 +23,7 @@ import time
 import uuid
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "src"))
 CHROME = "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome"
 
 
@@ -42,10 +42,10 @@ def read_json(path):
 
 def host(args):
     os.environ["YESDEV_DATA_DIR"] = str(args.out / "app-data")
-    import platform_mac
+    from yesdev.platforms import mac as platform_mac
     import rumps
     from AppKit import NSApplication, NSApplicationActivationPolicyAccessory
-    from yes_dev_mac import YesDev
+    from yesdev.app.app import YesDev
     assert platform_mac.is_trusted(), "Existing runtime needs Accessibility"
     assert platform_mac.acquire_single_instance("tray")
     NSApplication.sharedApplication().setActivationPolicy_(NSApplicationActivationPolicyAccessory)
@@ -126,8 +126,8 @@ async def driver(args):
     from Quartz import CGEventSourceSecondsSinceLastEventType, kCGEventSourceStateCombinedSessionState
     from playwright.async_api import async_playwright
     from websockets.asyncio.client import connect
-    from cdp_relay import read_endpoint, RELAY_PATH
-    from settings_model import DEFAULTS, save_atomic
+    from yesdev.relay.cdp_relay import read_endpoint, RELAY_PATH
+    from yesdev.core.settings_model import DEFAULTS, save_atomic
 
     assert args.profile.resolve().is_relative_to(Path("/tmp").resolve()) and args.profile.name.startswith("yesdev-")
     assert read_json(args.profile / "Local State").get("devtools", {}).get("remote_debugging", {}).get("user-enabled") is True

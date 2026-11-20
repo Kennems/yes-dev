@@ -13,7 +13,7 @@ import time
 import urllib.request
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "src"))
 
 
 def main():
@@ -24,13 +24,13 @@ def main():
     args = p.parse_args()
     args.data_dir.mkdir(parents=True, exist_ok=False)
     os.environ["YESDEV_DATA_DIR"] = str(args.data_dir.resolve())
-    from settings_model import DEFAULTS, save_atomic
+    from yesdev.core.settings_model import DEFAULTS, save_atomic
     initial = {**DEFAULTS, "enabled": False, "quiet_focus": True, "relay_enabled": True,
                "relay_profile": str(args.profile.resolve()), "relay_port": args.port, "notify_style": "none"}
     save_atomic(args.data_dir / "config.json", initial)
-    import platform_mac
+    from yesdev.platforms import mac as platform_mac
     from AppKit import NSApplication, NSApplicationActivationPolicyAccessory
-    from yes_dev_mac import YesDev
+    from yesdev.app.app import YesDev
     assert platform_mac.is_trusted(), "Existing runtime needs Accessibility for the watcher"
     NSApplication.sharedApplication().setActivationPolicy_(NSApplicationActivationPolicyAccessory)
     app = YesDev()
@@ -67,8 +67,8 @@ def main():
 
     # Use the real native helper without asking Chrome to activate. A crashed
     # helper must be replaced on the next request, and no runtime can remain.
-    from relay_mac import MacFocus
-    from cdp_relay import read_endpoint
+    from yesdev.relay.relay_mac import MacFocus
+    from yesdev.relay.cdp_relay import read_endpoint
     async def helper_recovery():
         focus = MacFocus(args.profile, args.data_dir / "focus-recovery.log")
         try:

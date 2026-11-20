@@ -11,6 +11,7 @@ from Foundation import NSObject, NSURL
 from pathlib import Path
 
 from ..platforms import mac as platform_mac
+from . import i18n
 from .settings_model import validate
 
 
@@ -47,67 +48,65 @@ class SettingsWindow:
         self.window = NSWindow.alloc().initWithContentRect_styleMask_backing_defer_(
             NSMakeRect(0, 0, 680, 620), NSWindowStyleMaskTitled | NSWindowStyleMaskClosable,
             NSBackingStoreBuffered, False)
-        self.window.setTitle_("Yes, Dev Settings")
+        self.window.setTitle_(i18n.t("settings.title"))
         self.window.setReleasedWhenClosed_(False)
         self.window.center()
         content = self.window.contentView()
         self.label(content, "Yes, Dev", 28, 566, 620, 30, size=24, bold=True)
-        self.label(content, "Approvals, focus, and connections", 29, 540, 620, 22, secondary=True)
-        self.button(content, "Accessibility…", "accessibility:", 499, 571, 152, 30)
+        self.label(content, i18n.t("settings.subtitle"), 29, 540, 620, 22, secondary=True)
+        self.button(content, i18n.t("settings.accessibility"), "accessibility:", 499, 571, 152, 30)
         self.permission = self.label(content, "", 353, 540, 298, 22, secondary=True)
         tabs = NSTabView.alloc().initWithFrame_(NSMakeRect(20, 101, 640, 420))
         content.addSubview_(tabs)
-        general = self.tab(tabs, "General")
-        focus = self.tab(tabs, "Focus & connection")
-        self.checkbox(general, "enabled", "Automatically approve debugging requests", 22, 345)
-        self.checkbox(general, "observe_only", "Observe only — record requests without approving", 22, 312)
-        self.checkbox(general, "include_edge", "Also approve Microsoft Edge requests", 22, 279)
-        self.checkbox(general, "start_at_login", "Start Yes, Dev when I log in", 22, 246)
-        self.popup(general, "notify_style", "Approval notice", [
-            ("Floating puffs", "puffs"), ("Toast card", "toast"), ("Silent", "none")], 208)
-        self.number(general, "poll_ms", "Check interval", "milliseconds", 169)
-        self.number(general, "arm_minutes", "Stay on for", "minutes · 0 means until turned off", 131)
-        self.number(general, "burst_limit", "Pause after", "approvals / minute · 0 disables", 93)
-        self.popup(general, "burst_action", "When a burst occurs", [
-            ("Ask me first (5 seconds)", "ask"), ("Pause automatically", "stop")], 55)
-        self.checkbox(general, "diagnostics", "Detailed diagnostic logging", 22, 16)
+        general = self.tab(tabs, "general", i18n.t("settings.tab.general"))
+        focus = self.tab(tabs, "focus", i18n.t("settings.tab.focus"))
+        self.checkbox(general, "enabled", i18n.t("settings.enabled"), 22, 345)
+        self.checkbox(general, "observe_only", i18n.t("settings.observe_only"), 22, 312)
+        self.checkbox(general, "include_edge", i18n.t("settings.include_edge"), 22, 279)
+        self.checkbox(general, "start_at_login", i18n.t("settings.start_at_login"), 22, 246)
+        self.popup(general, "notify_style", i18n.t("settings.notify_style"), [
+            (i18n.t("settings.notify.puffs"), "puffs"), (i18n.t("settings.notify.toast"), "toast"),
+            (i18n.t("settings.notify.none"), "none")], 208)
+        self.number(general, "poll_ms", i18n.t("settings.poll_ms"), i18n.t("settings.poll_ms.unit"), 169)
+        self.number(general, "arm_minutes", i18n.t("settings.arm_minutes"),
+                    i18n.t("settings.arm_minutes.unit"), 131)
+        self.number(general, "burst_limit", i18n.t("settings.burst_limit"),
+                    i18n.t("settings.burst_limit.unit"), 93)
+        self.popup(general, "burst_action", i18n.t("settings.burst_action"), [
+            (i18n.t("settings.burst_action.ask"), "ask"),
+            (i18n.t("settings.burst_action.stop"), "stop")], 55)
+        self.checkbox(general, "diagnostics", i18n.t("settings.diagnostics"), 22, 16)
 
-        self.popup(focus, "focus_mode", "Focus behavior", [
-            ("Off", "off"), ("Quiet focus", "standard"),
-            ("Fast focus via local relay (experimental)", "relay")], 340,
+        self.popup(focus, "focus_mode", i18n.t("settings.focus_mode"), [
+            (i18n.t("settings.focus.off"), "off"), (i18n.t("settings.focus.quiet"), "standard"),
+            (i18n.t("settings.focus.relay"), "relay")], 340,
             action="focusChanged:")
-        self.label(focus, "Quiet focus returns you to your previous app after Chrome opens a prompt.\n"
-                   "Fast focus shortens the interruption for tools using the address below.",
-                   22, 277, 574, 52, secondary=True)
-        self.label(focus, "Chrome data folder", 22, 244, 570, 22, bold=True)
+        self.label(focus, i18n.t("settings.focus.help"), 22, 277, 574, 52, secondary=True)
+        self.label(focus, i18n.t("settings.profile.title"), 22, 244, 570, 22, bold=True)
         path = self.textfield(focus, "relay_profile", 22, 209, 467, 26)
-        path.setToolTip_("Chrome's data folder contains Local State and DevToolsActivePort, not the Default subfolder.")
-        self.browse_button = self.button(focus, "Choose…", "browse:", 498, 207, 100, 30)
-        self.label(focus, "Choose the folder containing Chrome’s Local State file.",
-                   22, 180, 576, 22, secondary=True)
-        self.number(focus, "relay_port", "Local port", "default: 9333", 144)
-        self.checkbox(focus, "relay_hold", "Keep one Chrome connection open, so Chrome asks once per launch", 22, 110)
-        self.fields["relay_hold"].setToolTip_(
-            "Chrome asks when you open it, while you are already in it, instead of when an agent "
-            "first connects. Clients take turns on that connection; a second client at the same "
-            "time gets its own connection and its own prompt. Chrome shows its automation banner "
-            "for as long as the connection is held.")
-        self.label(focus, "Saved connection address", 22, 80, 550, 22, bold=True)
+        path.setToolTip_(i18n.t("settings.profile.tooltip"))
+        self.browse_button = self.button(focus, i18n.t("settings.profile.choose"), "browse:", 498, 207, 100, 30)
+        self.label(focus, i18n.t("settings.profile.hint"), 22, 180, 576, 22, secondary=True)
+        self.number(focus, "relay_port", i18n.t("settings.relay_port"),
+                    i18n.t("settings.relay_port.unit"), 144)
+        self.checkbox(focus, "relay_hold", i18n.t("settings.relay_hold"), 22, 110)
+        self.fields["relay_hold"].setToolTip_(i18n.t("settings.relay_hold.tooltip"))
+        self.label(focus, i18n.t("settings.address.title"), 22, 80, 550, 22, bold=True)
         self.address = self.label(focus, "", 22, 49, 430, 26)
         self.address.setSelectable_(True)
-        self.copy_button = self.button(focus, "Copy address", "copyAddress:", 454, 46, 144, 30)
+        self.copy_button = self.button(focus, i18n.t("settings.address.copy"), "copyAddress:", 454, 46, 144, 30)
         self.relay_status = self.label(focus, "", 22, 4, 577, 40, secondary=True)
 
         self.error = self.label(content, "", 29, 53, 440, 44)
         self.error.setTextColor_(NSColor.systemRedColor())
-        cancel = self.button(content, "Cancel", "cancel:", 465, 26, 90, 32)
+        cancel = self.button(content, i18n.t("settings.cancel"), "cancel:", 465, 26, 90, 32)
         cancel.setKeyEquivalent_("\x1b")
-        save = self.button(content, "Save", "save:", 561, 26, 90, 32)
+        save = self.button(content, i18n.t("settings.save"), "save:", 561, 26, 90, 32)
         save.setKeyEquivalent_("\r")
 
     @staticmethod
-    def tab(tabs, title):
-        item = NSTabViewItem.alloc().initWithIdentifier_(title)
+    def tab(tabs, identifier, title):
+        item = NSTabViewItem.alloc().initWithIdentifier_(identifier)
         item.setLabel_(title)
         view = NSView.alloc().initWithFrame_(NSMakeRect(0, 0, 615, 382))
         item.setView_(view)
@@ -195,8 +194,8 @@ class SettingsWindow:
         # not a field whose changes the user has not applied yet.
         self.address.setStringValue_(f"http://127.0.0.1:{self.owner.cfg['relay_port']}")
         self.relay_status.setStringValue_(self.owner.relay_status_text())
-        self.permission.setStringValue_("Accessibility: granted" if platform_mac.is_trusted()
-                                       else "Accessibility permission required")
+        self.permission.setStringValue_(i18n.t("settings.permission.granted") if platform_mac.is_trusted()
+                                       else i18n.t("settings.permission.required"))
 
     def save(self):
         values = dict(self.owner.cfg)
@@ -225,11 +224,11 @@ class SettingsWindow:
         panel.setCanChooseDirectories_(True)
         panel.setAllowsMultipleSelection_(False)
         panel.setCanCreateDirectories_(False)
-        panel.setPrompt_("Choose folder")
+        panel.setPrompt_(i18n.t("settings.folder.prompt"))
         current = Path(str(self.fields["relay_profile"].stringValue())).expanduser()
         if current.is_dir():
             panel.setDirectoryURL_(NSURL.fileURLWithPath_(str(current)))
-        panel.setMessage_("Choose Chrome’s data folder (the folder containing Local State).")
+        panel.setMessage_(i18n.t("settings.folder.message"))
         if panel.runModal() == 1:
             self.fields["relay_profile"].setStringValue_(str(panel.URL().path()))
 

@@ -16,8 +16,8 @@ import time
 import traceback
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-from relay_windows import RelayManager
+sys.path.insert(0, str(ROOT / "src"))
+from yesdev.relay.relay_windows import RelayManager
 from windows_relay_live import Cdp, PrivateChrome
 from websockets.asyncio.client import connect
 

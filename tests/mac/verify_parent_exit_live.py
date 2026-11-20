@@ -22,7 +22,7 @@ import time
 
 ROOT=Path(__file__).resolve().parents[2]
 sys.path.insert(0,str(ROOT))
-from settings_model import DEFAULTS,save_atomic
+from yesdev.core.settings_model import DEFAULTS,save_atomic
 from verify_hold_live import disposable_pid,write_json
 from websockets.asyncio.client import connect
 

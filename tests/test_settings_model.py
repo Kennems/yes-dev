@@ -5,8 +5,8 @@ import tempfile
 import unittest
 from unittest.mock import patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from settings_model import DEFAULTS, normalize, save_atomic, validate
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from yesdev.core.settings_model import DEFAULTS, normalize, save_atomic, validate
 
 
 class SettingsTests(unittest.TestCase):
@@ -43,7 +43,7 @@ class SettingsTests(unittest.TestCase):
             path = Path(d) / "config.json"
             original = b'{"enabled": false, "custom": "preserve exactly"}\n'
             path.write_bytes(original)
-            with patch("settings_model.os.replace", side_effect=OSError("disk error")):
+            with patch("yesdev.core.settings_model.os.replace", side_effect=OSError("disk error")):
                 with self.assertRaises(OSError):
                     save_atomic(path, DEFAULTS)
             self.assertEqual(path.read_bytes(), original)

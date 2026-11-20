@@ -19,15 +19,15 @@ from pathlib import Path
 
 BASE = Path(__file__).resolve().parent.parent
 if str(BASE) not in sys.path:
-    sys.path.insert(0, str(BASE))
+    sys.path.insert(0, str(BASE / "src"))
 
 if sys.platform != "darwin":
     raise unittest.SkipTest("the welcome window is macOS-only")
 
 try:
     from AppKit import NSApplication
-    import onboarding_mac
-    import platform_mac
+    from yesdev.ui import onboarding as onboarding_mac
+    from yesdev.platforms import mac as platform_mac
 except Exception as exc:  # pyobjc / window server missing
     raise unittest.SkipTest(f"needs the macOS pyobjc stack: {exc!r}")
 

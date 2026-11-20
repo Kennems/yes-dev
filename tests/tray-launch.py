@@ -9,7 +9,7 @@ from types import SimpleNamespace
 
 root = Path(__file__).resolve().parents[1]
 output = Path(sys.argv[1])
-tree = ast.parse((root / 'yes_dev.pyw').read_text(encoding='utf-8-sig'))
+tree = ast.parse((root / 'src/yesdev/platforms/windows_app.py').read_text(encoding='utf-8-sig'))
 method = next(node for cls in tree.body if isinstance(cls, ast.ClassDef)
               for node in cls.body if isinstance(node, ast.FunctionDef) and node.name == 'start_engine')
 calls = []

@@ -3,7 +3,7 @@ import asyncio
 import json
 from unittest.mock import patch
 
-import cdp_relay
+from yesdev.relay import cdp_relay as cdp_relay
 from test_cdp_relay_hold import HeldRelayFixture
 from websockets.asyncio.client import connect
 

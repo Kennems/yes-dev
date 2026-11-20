@@ -5,8 +5,8 @@ import sys
 import tempfile
 import unittest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from watcher_supervisor import Supervisor
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from yesdev.relay.supervisor import Supervisor
 
 
 class Process:

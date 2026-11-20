@@ -28,7 +28,7 @@ import time
 import traceback
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
+sys.path.insert(0, str(ROOT / "src"))
 from verify_hold_live import CHROME, Cdp, disposable_pid, write_json
 
 PROFILE = Path('/tmp/yesdev-test-profile')
@@ -42,7 +42,7 @@ def append(path, value):
 
 
 def watcher_child():
-    import watcher_mac
+    from yesdev.dialogs import watcher as watcher_mac
     profile = Path(os.environ['YESDEV_TEST_PROFILE'])
     gate = Path(os.environ['YESDEV_TEST_GATE'])
     def only_disposable(_self):
@@ -59,8 +59,8 @@ def watcher_child():
 
 
 def relay_child():
-    import cdp_relay
-    import relay_mac
+    from yesdev.relay import cdp_relay as cdp_relay
+    from yesdev.relay import relay_mac as relay_mac
     from websockets.asyncio.client import ClientConnection
     trace = Path(os.environ['YESDEV_TEST_TRACE'])
     evidence_dir = Path(os.environ['YESDEV_TEST_OUT'])
@@ -166,7 +166,7 @@ def relay_child():
 
 
 def tray_child():
-    import yes_dev_mac as tray
+    from yesdev import app as tray
     real_popen = subprocess.Popen
     def launch(command, *args, **kwargs):
         original = [str(x) for x in command]
@@ -232,7 +232,7 @@ class LaunchRun:
         append(self.case_out / 'events.jsonl', {'event': name, **fields})
 
     async def sample(self):
-        from relay_mac import front_pid_with_window, idle_seconds
+        from yesdev.relay.relay_mac import front_pid_with_window, idle_seconds
         while self.sampling:
             try:
                 append(self.out / 'foreground.jsonl', {
@@ -266,7 +266,7 @@ class LaunchRun:
         return len(re.findall(r'\[ACTION\].*APPROVED via ', path.read_text() if path.exists() else ''))
 
     async def start_tray(self):
-        from settings_model import DEFAULTS, save_atomic
+        from yesdev.core.settings_model import DEFAULTS, save_atomic
         data = self.case_out / 'app-data'
         data.mkdir(exist_ok=True)
         save_atomic(data / 'config.json', {**DEFAULTS, 'enabled': True, 'quiet_focus': True,
@@ -339,7 +339,7 @@ class LaunchRun:
         assert apps
         apps[0].activateWithOptions_(NSApplicationActivateIgnoringOtherApps)
         await asyncio.sleep(2.2)
-        from relay_mac import front_pid_with_window
+        from yesdev.relay.relay_mac import front_pid_with_window
         actual = await front_pid_with_window()
         expected = int(apps[0].processIdentifier())
         self.event('textedit_foreground', pid=actual, expected=expected)
@@ -494,7 +494,7 @@ class LaunchRun:
             print(f'WAIT {self.args.start_delay}s before the quiet interval', flush=True)
             await asyncio.sleep(self.args.start_delay)
         if self.args.wait_idle:
-            from relay_mac import idle_seconds
+            from yesdev.relay.relay_mac import idle_seconds
             print('Waiting for an input-free interval before launch checks', flush=True)
             await self.wait_for(lambda: idle_seconds() >= self.args.wait_idle, 300)
         sampler = asyncio.create_task(self.sample())

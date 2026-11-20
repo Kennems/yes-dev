@@ -12,10 +12,9 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import Mock, patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-import watcher_mac
-import focus_guard_mac
-
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+from yesdev.dialogs import watcher as watcher_mac
+from yesdev.dialogs import focus_guard as focus_guard_mac
 GONE = 999_999   # no live parent of ours has this pid
 
 

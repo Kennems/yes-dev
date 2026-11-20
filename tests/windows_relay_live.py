@@ -33,8 +33,8 @@ import traceback
 from unittest.mock import patch
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-import cdp_relay
+sys.path.insert(0, str(ROOT / "src"))
+from yesdev.relay import cdp_relay as cdp_relay
 from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosed, InvalidStatus
 import websockets

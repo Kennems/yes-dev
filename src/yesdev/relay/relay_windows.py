@@ -11,6 +11,7 @@ from contextlib import asynccontextmanager
 import json
 import logging
 from logging.handlers import RotatingFileHandler
+import ntpath
 import os
 from pathlib import Path
 import subprocess
@@ -18,6 +19,8 @@ import sys
 import threading
 import time
 import uuid
+
+from yesdev import _proc as proc
 
 LOGGER = logging.getLogger("yesdev.relay")
 
@@ -118,9 +121,13 @@ def child_python():
     base = getattr(sys, "_base_executable", None)
     if sys.platform == "win32" and sys.prefix != sys.base_prefix and base:
         executable = str(base)
-        packages = str(Path(sys.prefix) / "Lib" / "site-packages")
+        # ntpath, not Path: this branch must build a Windows path even when the
+        # code is exercised from a POSIX host in tests.
+        packages = ntpath.join(str(sys.prefix), "Lib", "site-packages")
         prior = environment.get("PYTHONPATH")
-        environment["PYTHONPATH"] = os.pathsep.join([packages, *([prior] if prior else [])])
+        # ';' not os.pathsep: this branch only runs on Windows, where PYTHONPATH
+        # is always semicolon-separated - even when a POSIX host runs the test.
+        environment["PYTHONPATH"] = ";".join([packages, *([prior] if prior else [])])
     return executable, environment
 
 
@@ -427,7 +434,13 @@ class RelayManager:
                 runtime = self.data_dir / "relay-runs" / run_id
                 runtime.mkdir(parents=True)
                 executable, environment = child_python()
-                command = [executable, str(self.root / "relay_windows.py"),
+                # The host is a module now, not a sibling file. It still needs
+                # this checkout's src/ on PYTHONPATH when running from source.
+                environment = dict(environment)
+                existing = environment.get("PYTHONPATH")
+                environment["PYTHONPATH"] = ";".join(
+                    [str(proc.SRC_ROOT)] + ([existing] if existing else []))
+                command = [executable, "-m", "yesdev.relay.relay_windows",
                            "--profile", config[0], "--port", str(config[1]),
                            "--status-path", str(runtime / "status.json"),
                            "--log-path", str(self.data_dir / "relay.log"),

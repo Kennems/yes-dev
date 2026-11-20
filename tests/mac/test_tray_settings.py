@@ -5,9 +5,9 @@ import tempfile
 import unittest
 from unittest.mock import Mock, patch
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[2]))
-import yes_dev_mac as tray
-from settings_model import DEFAULTS
+sys.path.insert(0, str(Path(__file__).resolve().parents[2] / "src"))
+from yesdev import app as tray
+from yesdev.core.settings_model import DEFAULTS
 
 
 class TraySettingsTests(unittest.TestCase):

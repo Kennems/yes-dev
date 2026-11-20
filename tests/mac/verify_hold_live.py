@@ -32,8 +32,8 @@ import traceback
 from urllib.parse import quote
 
 ROOT = Path(__file__).resolve().parents[2]
-sys.path.insert(0, str(ROOT))
-from cdp_relay import read_endpoint
+sys.path.insert(0, str(ROOT / "src"))
+from yesdev.relay.cdp_relay import read_endpoint
 from websockets.asyncio.client import ClientConnection, connect
 from websockets.exceptions import ConnectionClosed
 
@@ -84,7 +84,7 @@ def foreground():
 
 def banner_snapshot(pid):
     """Read only text relevant to the automation notice in the disposable app."""
-    import watcher_mac as watcher
+    from yesdev.dialogs import watcher as watcher
     found, visited = set(), 0
     def walk(element, depth):
         nonlocal visited
@@ -507,7 +507,7 @@ class LiveRun:
     def window_snapshot(self):
         import Quartz
         from ApplicationServices import AXValueGetValue,kAXValueCGPointType
-        import watcher_mac as watcher
+        from yesdev.dialogs import watcher as watcher
         pid=disposable_pid(self.profile)
         windows=[]
         def has_sheet(window):
@@ -748,8 +748,8 @@ class LiveRun:
 
 
 def relay_child():
-    import cdp_relay
-    import relay_mac
+    from yesdev.relay import cdp_relay as cdp_relay
+    from yesdev.relay import relay_mac as relay_mac
     trace=Path(os.environ['YESDEV_TEST_TRACE'])
     class TraceConnection(ClientConnection):
         def record(self,direction,payload):
@@ -770,7 +770,7 @@ def relay_child():
 
 
 def watcher_child():
-    import watcher_mac
+    from yesdev.dialogs import watcher as watcher_mac
     profile=Path(os.environ['YESDEV_TEST_PROFILE'])
     def only_disposable(_self):
         try: return [disposable_pid(profile)]

@@ -18,10 +18,10 @@ import time
 import traceback
 
 ROOT = Path(__file__).resolve().parents[1]
-sys.path.insert(0, str(ROOT))
-import cdp_relay
-from relay_windows import RelayManager
-from windows_runtime import Native
+sys.path.insert(0, str(ROOT / "src"))
+from yesdev.relay import cdp_relay as cdp_relay
+from yesdev.relay.relay_windows import RelayManager
+from yesdev.platforms.windows import Native
 from windows_relay_live import Cdp, PrivateChrome
 from windows_relay_adversarial_live import free_port
 

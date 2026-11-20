@@ -5,7 +5,7 @@ from unittest.mock import AsyncMock, Mock, patch
 
 from test_cdp_relay_hold import HeldRelayFixture
 import test_cdp_relay_hold
-from cdp_multiplex import Client, MultiplexRelay
+from yesdev.relay.cdp_multiplex import Client, MultiplexRelay
 from websockets.exceptions import ConnectionClosed
 
 

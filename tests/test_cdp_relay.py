@@ -7,8 +7,8 @@ import sys
 import tempfile
 import unittest
 
-sys.path.insert(0, str(Path(__file__).resolve().parents[1]))
-from cdp_relay import Endpoint, NoFocus, Relay, RELAY_PATH, read_endpoint
+sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "src"))
+from yesdev.relay.cdp_relay import Endpoint, NoFocus, Relay, RELAY_PATH, read_endpoint
 from websockets.asyncio.client import connect
 from websockets.asyncio.server import serve
 from websockets.exceptions import ConnectionClosed, InvalidStatus
