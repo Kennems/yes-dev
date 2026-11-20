@@ -19,10 +19,8 @@ import sys
 import time
 import uuid
 
-ROOT = Path(__file__).resolve().parent
-sys.path.insert(0, str(ROOT))
-from focus_protocol import AppIdentity, ArmGate
-import focus_guard_mac as normal
+from yesdev.dialogs.focus_protocol import AppIdentity, ArmGate
+from yesdev.dialogs import focus_guard as normal
 from AppKit import NSRunningApplication, NSWorkspace
 from CoreFoundation import (
     CFFileDescriptorCreate, CFFileDescriptorCreateRunLoopSource, CFFileDescriptorEnableCallBacks,

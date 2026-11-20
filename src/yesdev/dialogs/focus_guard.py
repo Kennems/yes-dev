@@ -44,11 +44,8 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent
-if str(BASE) not in sys.path:
-    sys.path.insert(0, str(BASE))
 
-from platform_mac import DATA_DIR, ensure_data_dir, is_trusted  # noqa: E402
+from yesdev.platforms.mac import DATA_DIR, ensure_data_dir, is_trusted  # noqa: E402
 
 try:
     import watcher_mac as wm   # the one definition of what the consent sheet looks like

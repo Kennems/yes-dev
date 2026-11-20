@@ -78,7 +78,7 @@ class ParentProcess:
     """Keep the original process handle open so PID reuse cannot change owner."""
     def __init__(self, pid, creation, native=None):
         if native is None:
-            from windows_runtime import Native
+            from yesdev.platforms.windows import Native
             native = Native()
         self.native = native
         self.handle = native.kernel.OpenProcess(0x1000 | 0x100000, False, pid)
@@ -101,7 +101,7 @@ class ParentProcess:
 
 
 def parent_creation():
-    from windows_runtime import Native
+    from yesdev.platforms.windows import Native
     native = Native()
     return native.creation(native.kernel.GetCurrentProcess())
 
@@ -145,9 +145,9 @@ async def run(args):
         parent = ParentProcess(args.parent_pid, args.parent_creation)
         # Log and status already work if the optional transport is absent.
         if getattr(args, "multiplex", False):
-            from cdp_multiplex import MultiplexRelay as Relay
+            from yesdev.relay.cdp_multiplex import MultiplexRelay as Relay
         else:
-            from cdp_relay import Relay
+            from yesdev.relay.cdp_relay import Relay
         relay = Relay(args.profile, NoFocus(), port=args.port, status=status, hold=True)
         await relay.start()
         LOGGER.info("Listening at %s; run=%s; parent=%s", relay.address, args.run_id, args.parent_pid)

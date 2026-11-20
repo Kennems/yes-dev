@@ -23,7 +23,7 @@ from pathlib import Path
 # Run the launch guard before third-party imports so import failures are recorded.
 if __name__ == "__main__":
     try:
-        from windows_runtime import run
+        from yesdev.platforms.windows import run
         raise SystemExit(run(Path(__file__)))
     except Exception:
         import traceback
@@ -40,14 +40,13 @@ import pystray
 from PIL import Image, ImageDraw
 
 import puffs        # the cloud artwork; the status icon is the app's own cloud
-from relay_windows import RelayManager
+from yesdev.relay.relay_windows import RelayManager
 
 APP_NAME = "Yes, Dev"
 APP_SLUG = "yes-dev"
 
 BASE = Path(__file__).resolve().parent
-if str(BASE) not in sys.path:
-    sys.path.insert(0, str(BASE))   # so `import puffs` works however we were launched
+# BASE is kept for the PowerShell engine; package imports need no path surgery.   # so `import puffs` works however we were launched
 WATCHER = BASE / "watcher.ps1"
 SUPERVISOR = BASE / "watcher_supervisor.py"
 DATA_DIR = Path(os.environ.get("LOCALAPPDATA", Path.home())) / "YesDev"
@@ -445,7 +444,7 @@ class YesDev:
     def puff_overlay(self):
         if self._puffs is None:
             try:
-                import puffs
+                from yesdev.ui import puffs as puffs
                 self._puffs = puffs.PuffClient(log=log)
             except Exception:
                 import traceback

@@ -52,3 +52,48 @@ Run the non-native package checks before building:
 ```powershell
 python -m unittest discover -s tests -p test_windows_relay_packaging.py
 ```
+
+# macOS app bundle
+
+Upstream ships macOS as bare Python source, so the process that asks for
+Accessibility is the interpreter and TCC lists it as "python3.11". TCC keys the
+grant to the process's code identity, so a launcher that `exec`s an interpreter
+is still the interpreter to macOS. This packaging removes that layer:
+
+```
+YesDev.app/Contents/MacOS/YesDev          the CPython binary itself - the app's
+                                          main executable, ad-hoc signed
+YesDev.app/Contents/lib/python3.11/       stdlib, Tk, pip dependencies
+YesDev.app/Contents/Resources/app/        the project's .py files
+YesDev.app/Contents/Resources/YesDev.icns icon cut from docs/logo.png
+```
+
+Because `Contents/MacOS/YesDev` is the bundle's main executable, macOS attributes
+the process to the bundle: the Accessibility list shows the app, not an
+interpreter. `Info.plist` sets `LSUIElement` (no Dock icon) and an
+`LSEnvironment` marker; `sitecustomize.py` installed into site-packages starts
+the tray only when that marker is present, because `sys.argv` is still empty at
+that point. Helper processes are the same binary started with a script argument,
+so `sys.executable` keeps working for the engine, overlay, guard, relay, and
+burst dialog.
+
+Building:
+
+```bash
+python3 packaging/build_macos_app.py \
+  --python "$HOME/.local/share/uv/python/cpython-3.11-macos-aarch64-none/bin/python3.11" \
+  --output dist
+cp -R dist/YesDev.app /Applications/
+```
+
+The build pre-compiles all bytecode before sealing, and the bundle exports
+`PYTHONDONTWRITEBYTECODE=1`. Both matter: if the app writes a new `__pycache__`
+after signing, the added files invalidate the code signature and TCC stops
+matching the grant (`errSecCSResourcesNotFound`). Keep that order.
+
+The bundle is ad-hoc signed with the stable identifier `com.dev-newb.yesdev`.
+TCC records a grant against the app's cdhash, so **rebuilding the app changes the
+cdhash and needs a fresh grant**: remove the old YesDev entry in
+System Settings > Privacy & Security > Accessibility before adding the new build,
+or `tccutil reset Accessibility com.dev-newb.yesdev` first. Settings and logs
+stay in `~/Library/Application Support/YesDev/`.

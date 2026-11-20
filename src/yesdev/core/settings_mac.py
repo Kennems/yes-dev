@@ -10,8 +10,8 @@ from AppKit import (
 from Foundation import NSObject, NSURL
 from pathlib import Path
 
-import platform_mac
-from settings_model import validate
+from ..platforms import mac as platform_mac
+from .settings_model import validate
 
 
 class _YesDevSettingsActions(NSObject):

@@ -467,16 +467,19 @@ def serve() -> None:
 class PuffClient:
     """Parent-side handle. Spawns the overlay process on demand and feeds it.
 
-    `script` is the overlay to run with --serve; it defaults to this file (the
-    Windows overlay). The macOS tray passes puffs_mac.py - same protocol,
-    different window system.
+    Pass `module` (e.g. ``yesdev.ui.puffs_mac``) to run the overlay from this
+    package; pass `script` only for a standalone overlay file. Same stdin
+    protocol either way - only the window system differs.
     """
 
-    def __init__(self, log=None, script: "Path | str | None" = None) -> None:
+    def __init__(self, log=None, script: "Path | str | None" = None,
+                 module: str | None = None) -> None:
         self._proc: subprocess.Popen | None = None
         self._lock = threading.Lock()
         self._log = log or (lambda _m: None)
-        self._script = str(script) if script else os.path.abspath(__file__)
+        self._module = module
+        self._script = None if module else (
+            str(script) if script else os.path.abspath(__file__))
 
     def _interpreter(self) -> str:
         exe = Path(sys.executable)
@@ -489,9 +492,13 @@ class PuffClient:
     def _spawn(self) -> bool:
         try:
             kwargs = {"creationflags": CREATE_NO_WINDOW} if sys.platform == "win32" else {}
+            if self._module:
+                from yesdev._proc import child_env
+                argv, env = [self._interpreter(), "-m", self._module, "--serve"], child_env()
+            else:
+                argv, env = [self._interpreter(), self._script, "--serve"], None
             self._proc = subprocess.Popen(
-                [self._interpreter(), self._script, "--serve"],
-                stdin=subprocess.PIPE, **kwargs,
+                argv, stdin=subprocess.PIPE, env=env, **kwargs,
             )
             self._log(f"  puff overlay process started pid={self._proc.pid}")
             return True

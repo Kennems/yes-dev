@@ -13,7 +13,7 @@ import json
 from websockets.exceptions import ConnectionClosed
 from websockets.protocol import State
 
-from cdp_relay import LOGGER, MAX_MESSAGE, MAX_PENDING_CALLS, Relay, read_endpoint
+from yesdev.relay.cdp_relay import LOGGER, MAX_MESSAGE, MAX_PENDING_CALLS, Relay, read_endpoint
 
 
 @dataclass(eq=False)

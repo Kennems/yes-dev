@@ -59,11 +59,7 @@ import time
 from datetime import datetime
 from pathlib import Path
 
-try:
-    from platform_mac import DATA_DIR, LOG_PATH, ensure_data_dir, is_trusted
-except ImportError:  # allow running from another cwd
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from platform_mac import DATA_DIR, LOG_PATH, ensure_data_dir, is_trusted
+from yesdev.platforms.mac import DATA_DIR, LOG_PATH, ensure_data_dir, is_trusted
 
 try:
     import objc
@@ -97,8 +93,15 @@ EDGE_BUNDLES = ("com.microsoft.edgemac", "com.microsoft.edgemac.beta")
 # is not fussiness: web pages carry their own "Allow" buttons (permission chips,
 # ad blockers) and a loose match clicks them; it also keeps us off "Turn off in
 # settings", which disables the whole feature.
-DIALOG_PATTERN = re.compile(r"^allow remote debugging\??$", re.I)
-APPROVE_PATTERN = re.compile(r"^(allow|approve)$", re.I)
+# The dialog title is LOCALISED. zh-CN shows "是否允许远程调试?" (Chrome 152-153)
+# or "要允许远程调试吗？" with a full-width question mark (Chrome 154+), so an
+# English-only pattern matches nothing there: the engine runs, logs nothing, and
+# every attach times out. Keep only the observed titles exact - do not accept
+# arbitrary consent text. Mirrors $DialogPattern in watcher.ps1.
+DIALOG_PATTERN = re.compile(
+    r"^(allow remote debugging\?|是否允许远程调试\?|要允许远程调试吗？)$", re.I)
+# zh-CN label is 允许; anchored so "在设置中关闭" is never hit.
+APPROVE_PATTERN = re.compile(r"^(allow|approve|允许)$", re.I)
 
 
 def _is_consent_host(title: str, has_heading: bool, is_dialog: bool) -> bool:
@@ -123,6 +126,8 @@ def _is_consent_host(title: str, has_heading: bool, is_dialog: bool) -> bool:
 
 # ponytail: title-vs-heading decision only. A live sheet still needs Chrome.
 assert _is_consent_host("Allow remote debugging?", False, True)
+assert _is_consent_host("要允许远程调试吗？", False, True)   # zh-CN, Chrome 154+
+assert _is_consent_host("是否允许远程调试?", False, True)   # zh-CN, Chrome 152-153
 assert _is_consent_host("", True, True)
 assert not _is_consent_host("", False, True)
 assert not _is_consent_host("GitHub", True, True)

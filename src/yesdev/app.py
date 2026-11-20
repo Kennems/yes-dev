@@ -36,9 +36,7 @@ from collections import deque
 from datetime import datetime, timedelta
 from pathlib import Path
 
-BASE = Path(__file__).resolve().parent
-if str(BASE) not in sys.path:
-    sys.path.insert(0, str(BASE))   # so `import puffs` works however we were launched
+from yesdev import _proc as proc
 
 try:
     import rumps
@@ -48,21 +46,21 @@ except ImportError:
 from AppKit import NSApplication, NSApplicationActivationPolicyAccessory
 from PIL import Image, ImageDraw, ImageOps
 
-import platform_mac
-import puffs                     # the icon is drawn from the same cloud renderer
-from platform_mac import (
+from yesdev.platforms import mac as platform_mac
+from yesdev.ui import puffs      # the icon is drawn from the same cloud renderer
+from yesdev.platforms.mac import (
     APP_NAME, APP_SLUG, CONFIG_PATH, DATA_DIR, LOG_PATH, TRAY_LOG,
     accessibility_settings_url, ensure_data_dir, is_trusted,
 )
 
-WATCHER = BASE / "watcher_mac.py"
-OVERLAY = BASE / "puffs_mac.py"
-FOCUS_GUARD = BASE / "focus_guard_mac.py"
-BURST_DIALOG = BASE / "burst_dialog.py"
+WATCHER = "yesdev.dialogs.watcher"
+OVERLAY = "yesdev.ui.puffs_mac"
+FOCUS_GUARD = "yesdev.dialogs.focus_guard"
+BURST_DIALOG = "yesdev.ui.burst"
 
-from settings_model import normalize, save_atomic
+from yesdev.core.settings_model import normalize, save_atomic
 
-RELAY = BASE / "relay_mac.py"
+RELAY = "yesdev.relay.relay_mac"
 RELAY_STATUS = DATA_DIR / "relay-status.json"
 
 BURST_WINDOW = 60.0    # seconds
@@ -188,6 +186,7 @@ class YesDev(rumps.App):
         self.relay: subprocess.Popen | None = None
         self._relay_retry_at = 0.0
         self._settings = None
+        self._welcome = None
         self.approvals = 0
         self.recent: deque[float] = deque()      # timestamps, for the burst guard
         self.disarm_at: datetime | None = None
@@ -213,7 +212,7 @@ class YesDev(rumps.App):
     def start_engine(self) -> None:
         if self.engine_running():
             return
-        args = [sys.executable, str(WATCHER),
+        args = proc.module_args(WATCHER) + [
                 "--interval-ms", str(self.cfg["poll_ms"]),
                 "--log-path", str(LOG_PATH),
                 # If this tray dies without cleaning up, the engine stops itself.
@@ -236,7 +235,7 @@ class YesDev(rumps.App):
             # DEVNULL, not PIPE: the engine also prints every line to stdout, and
             # a pipe nobody drains would fill and block it mid-sweep.
             self.proc = subprocess.Popen(args, stdout=subprocess.DEVNULL,
-                                         stderr=subprocess.DEVNULL)
+                                         stderr=subprocess.DEVNULL, env=proc.child_env())
         except Exception as exc:
             log(f"engine failed to start: {exc!r}")
             return
@@ -291,12 +290,12 @@ class YesDev(rumps.App):
             self.stop_guard()
 
     def start_guard(self) -> None:
-        args = [sys.executable, str(FOCUS_GUARD), "--exit-with-parent", "--parent-pid", str(os.getpid())]
+        args = proc.module_args(FOCUS_GUARD) + ["--exit-with-parent", "--parent-pid", str(os.getpid())]
         if self.cfg["include_edge"]:
             args.append("--include-edge")
         try:
             self.guard = subprocess.Popen(args, stdout=subprocess.DEVNULL,
-                                          stderr=subprocess.DEVNULL)
+                                          stderr=subprocess.DEVNULL, env=proc.child_env())
         except Exception as exc:
             log(f"focus guard failed to start: {exc!r}")
             return
@@ -322,7 +321,7 @@ class YesDev(rumps.App):
         if time.monotonic() < self._relay_retry_at:
             return
         self._relay_retry_at = time.monotonic() + 10
-        args = [sys.executable, str(RELAY), "--profile", self.cfg["relay_profile"],
+        args = proc.module_args(RELAY) + ["--profile", self.cfg["relay_profile"],
                 "--port", str(self.cfg["relay_port"]), "--exit-with-parent",
                 "--parent-pid", str(os.getpid())]
         if self.cfg.get("relay_hold"):
@@ -330,7 +329,8 @@ class YesDev(rumps.App):
             # first connects while you are working elsewhere.
             args += ["--hold", "--prime"]
         try:
-            self.relay = subprocess.Popen(args, stdout=subprocess.DEVNULL, stderr=subprocess.DEVNULL)
+            self.relay = subprocess.Popen(args, stdout=subprocess.DEVNULL,
+                                          stderr=subprocess.DEVNULL, env=proc.child_env())
             log(f"relay started pid={self.relay.pid}")
         except Exception as exc:
             log(f"relay failed to start: {exc!r}")
@@ -459,8 +459,9 @@ class YesDev(rumps.App):
             # answer is collected in _poll_burst_dialog and _asking is the guard
             # against re-entry.
             self._asking = subprocess.Popen(
-                [sys.executable, str(BURST_DIALOG), str(count), APP_NAME],
-                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True)
+                proc.module_args(BURST_DIALOG) + [str(count), APP_NAME],
+                stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, text=True,
+                env=proc.child_env())
             self._asking_count = count
         except Exception as exc:
             log(f"  burst dialog failed ({exc!r}) - stopping, the safe answer")
@@ -504,9 +505,9 @@ class YesDev(rumps.App):
     def puff_overlay(self):
         if self._puffs is None:
             try:
-                import puffs
+                from yesdev.ui import puffs as puffs
                 # Same client, same stdin protocol - only the overlay differs.
-                self._puffs = puffs.PuffClient(log=log, script=OVERLAY)
+                self._puffs = puffs.PuffClient(log=log, module=OVERLAY)
             except Exception:
                 import traceback
                 log(f"  puff client FAILED: {traceback.format_exc()}")
@@ -559,6 +560,7 @@ class YesDev(rumps.App):
         self.mi_relay = rumps.MenuItem("Fast focus: off")
         self.menu = [
             self.mi_status, self.mi_count, self.mi_access, None, self.mi_on,
+            rumps.MenuItem("Welcome…", callback=self.on_welcome),
             rumps.MenuItem("Settings…", callback=self.on_settings), self.mi_relay, None,
             rumps.MenuItem("Open log", callback=self.on_open(LOG_PATH)),
             rumps.MenuItem("Open relay log", callback=self.on_open(DATA_DIR / "relay.log")), None,
@@ -619,9 +621,16 @@ class YesDev(rumps.App):
 
     # ---------- menu actions ----------
 
+    def on_welcome(self, _item=None) -> None:
+        """The first-run window: what it does, what it needs, one button."""
+        if self._welcome is None:
+            from yesdev.ui.onboarding import WelcomeWindow
+            self._welcome = WelcomeWindow(self)
+        self._welcome.show()
+
     def on_settings(self, _item=None) -> None:
         if self._settings is None:
-            from settings_mac import SettingsWindow
+            from yesdev.core.settings_mac import SettingsWindow
             self._settings = SettingsWindow(self)
         self._settings.show()
 
@@ -716,6 +725,7 @@ class YesDev(rumps.App):
 def main() -> int:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--settings", action="store_true", help="open the settings window on launch")
+    parser.add_argument("--welcome", action="store_true", help="open the welcome window on launch")
     opts = parser.parse_args()
     # One tray instance; a second would fight the first over the engine.
     if not platform_mac.acquire_single_instance("tray"):
@@ -759,6 +769,18 @@ def main() -> int:
             timer.stop()
             app.on_settings()
         rumps.Timer(show_settings, .25).start()
+    elif opts.welcome:
+        def show_welcome(timer):
+            timer.stop()
+            app.on_welcome()
+        rumps.Timer(show_welcome, .4).start()
+    elif not (DATA_DIR / ".welcome-shown").exists():
+        # First run: the app is invisible until the Accessibility grant lands, so
+        # say what it does and ask for that grant instead of relying on the menu.
+        def show_welcome(timer):
+            timer.stop()
+            app.on_welcome()
+        rumps.Timer(show_welcome, .6).start()
     try:
         app.run()
     finally:

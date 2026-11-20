@@ -16,10 +16,10 @@ import tempfile
 import time
 import uuid
 
-from cdp_relay import LaunchPrimer, Relay, read_endpoint
-from platform_mac import DATA_DIR
+from yesdev.relay.cdp_relay import LaunchPrimer, Relay, read_endpoint
+from yesdev.platforms.mac import DATA_DIR
 
-ROOT = Path(__file__).resolve().parent
+from yesdev import _proc as proc
 LOGGER = logging.getLogger("yesdev.relay")
 
 
@@ -112,11 +112,12 @@ class MacFocus:
         self.runtime = tempfile.TemporaryDirectory(prefix="yesdev-relay-", dir="/tmp")
         run = Path(self.runtime.name) / "run"
         self.process = await asyncio.create_subprocess_exec(
-            sys.executable, str(ROOT / "early_focus_guard_mac.py"),
+            *proc.module_args("yesdev.dialogs.focus_early"),
             "--browser-pid", str(pid), "--profile", str(self.profile),
             "--runtime-dir", str(run), "--log-path", str(self.log_path), "--exit-with-parent",
             "--parent-pid", str(os.getpid()),
-            stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL)
+            stdout=asyncio.subprocess.DEVNULL, stderr=asyncio.subprocess.DEVNULL,
+            env=proc.child_env())
         try:
             deadline = time.monotonic() + 4
             while not (run / "session.json").exists():

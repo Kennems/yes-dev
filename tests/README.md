@@ -216,6 +216,15 @@ events, and delayed sheet reads. They cover input during a scan or retry,
 including scans longer than the quiet-input threshold, and preserve the quiet
 restore and no-consent behavior. They do not activate apps or generate input.
 
+`tests/test_watcher_mac_consent.py` pins the consent-dialog matching in
+`watcher_mac.py`: the English title, the Simplified Chinese title that Chrome
+157 actually shows (`要允许远程调试吗？`, taken from its own `zh_CN` locale.pak),
+the earlier `是否允许远程调试?` wording, and the button labels. It also pins the
+negative cases - a window-menu lookalike, and the sheet's `在“设置”中关闭` button,
+which must never be pressed. This is the regression the macOS build shared with
+`watcher.ps1`: an English-only pattern turns the engine into a silent no-op on a
+localised Chrome.
+
 The transport tests use actual loopback TCP and WebSocket servers to cover
 independent client sessions, queued and in-progress cancellation, timeouts,
 reconnects, changed Chrome endpoints, shutdown, and HTTP/Origin restrictions.
@@ -627,3 +636,9 @@ records Chrome 154.0.8037.97; the earlier relay and pool-only runs recorded
 product strings per connection. These are not day-long endurance results or a
 claim that system libraries allocate no memory. The user accepted the completed
 validation as sufficient on 2026-10-02 and explicitly declined a full-day trial.
+
+`tests/test_onboarding_mac.py` covers the first-run welcome window: the declared
+size, that every control stays inside the content view, that the copy actually
+states the purpose and the one permission needed, and that the status/button
+pair follows the real Accessibility grant. It builds the window without showing
+it, so it does not steal focus.

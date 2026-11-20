@@ -41,25 +41,14 @@ from pathlib import Path
 # The artwork generator and every motion range come from the Windows module.
 # It imports cleanly off-Windows: its Tk import is guarded and the GDI binding
 # only happens on win32.
-try:
-    from puffs import (
-        ALPHA_RANGE, DRIFT_RANGE, FRAME_MS, IDLE_MS, LIFE_RANGE, MAX_LIVE,
-        RISE_RANGE, SIZE_RANGE, SPAWN_X_BACK, SPAWN_Y_UP, _render_cloud,
-    )
-except ImportError:  # allow running from another cwd
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from puffs import (
-        ALPHA_RANGE, DRIFT_RANGE, FRAME_MS, IDLE_MS, LIFE_RANGE, MAX_LIVE,
-        RISE_RANGE, SIZE_RANGE, SPAWN_X_BACK, SPAWN_Y_UP, _render_cloud,
-    )
+from yesdev.ui.puffs import (
+    ALPHA_RANGE, DRIFT_RANGE, FRAME_MS, IDLE_MS, LIFE_RANGE, MAX_LIVE,
+    RISE_RANGE, SIZE_RANGE, SPAWN_X_BACK, SPAWN_Y_UP, _render_cloud,
+)
 
 from PIL import Image, ImageOps
 
-try:
-    from platform_mac import DATA_DIR, ensure_data_dir
-except ImportError:
-    sys.path.insert(0, str(Path(__file__).resolve().parent))
-    from platform_mac import DATA_DIR, ensure_data_dir
+from yesdev.platforms.mac import DATA_DIR, ensure_data_dir
 
 try:
     import objc
@@ -389,7 +378,7 @@ if __name__ == "__main__":
     else:
         # Manual check: a few bursts through the real client path, exactly as the
         # tray will drive it.
-        from puffs import PuffClient
+        from yesdev.ui.puffs import PuffClient
 
         client = PuffClient(log=print, script=os.path.abspath(__file__))
         for n in (1, 3, 6):
