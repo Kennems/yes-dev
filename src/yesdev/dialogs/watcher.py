@@ -295,6 +295,106 @@ def _is_visible(element) -> bool:
     return True
 
 
+# -------- locked screen fallback --------
+#
+# While the screen is locked macOS reduces every app's AX tree to its shell:
+# AXWindows still answers with the right count, but each entry comes back as
+# role AXApplication with an empty name, no AXSheets and no buttons - measured
+# on Chrome 158 / Edge, 2026-11-25. The consent sheet is unreachable through AX
+# there, so find_dialog_hosts and _is_visible cannot help. The window server
+# keeps the geometry, though: CGWindowListCopyWindowInfo still reports the
+# sheet's bounds and owner pid, so the locked path locates the sheet by size and
+# posts the click straight to the browser process with CGEventPostToPid - no
+# pointer movement, no app activation, and it cannot land in another app.
+
+PANEL_W_RANGE = (380, 560)   # consent sheet measures 448x200 on Chrome 158
+PANEL_H_RANGE = (150, 260)
+
+
+def _screen_locked() -> bool:
+    """Whether the login session is locked.
+
+    @returns True when ScreenSaver has the session.
+    """
+    try:
+        from Quartz import CGSessionCopyCurrentDictionary
+    except Exception:
+        return False
+    try:
+        session = CGSessionCopyCurrentDictionary()
+        return bool(session and session.get("CGSSessionScreenIsLocked"))
+    except Exception:
+        return False
+
+
+def _locked_panels(pids) -> list:
+    """Sheet-shaped windows for the given browser pids, from the window server.
+
+    Size is the only usable discriminator while locked: the sheet's name is
+    empty and its AX identity is gone.
+
+    @param pids - Browser process ids to consider.
+    @returns List of (pid, (x, y, width, height)).
+    """
+    try:
+        from Quartz import (CGWindowListCopyWindowInfo, kCGNullWindowID,
+                            kCGWindowListOptionAll)
+    except Exception:
+        return []
+    try:
+        windows = CGWindowListCopyWindowInfo(kCGWindowListOptionAll, kCGNullWindowID) or []
+    except Exception:
+        return []
+    wanted = set(pids)
+    found = []
+    for window in windows:
+        pid = window.get("kCGWindowOwnerPID")
+        if pid not in wanted or (window.get("kCGWindowLayer") or 0) != 0:
+            continue
+        box = window.get("kCGWindowBounds") or {}
+        width, height = box.get("Width"), box.get("Height")
+        if not width or not height:
+            continue
+        if (PANEL_W_RANGE[0] <= width <= PANEL_W_RANGE[1]
+                and PANEL_H_RANGE[0] <= height <= PANEL_H_RANGE[1]):
+            found.append((pid, (box.get("X"), box.get("Y"), width, height)))
+    return found
+
+
+def _post_keys(pid: int) -> bool:
+    """Send Return + Tab + Space straight to one process.
+
+    While the screen is locked, mouse events are dropped at every level
+    (CGEventPostToPid, kCGHIDEventTap, with or without timestamp and click
+    state - all measured 2026-11-25, page-level click counter stayed at 0).
+    Keyboard events posted to the pid still reach a focused consent sheet:
+    a backlog of 27 queued prompts went to 0 with this sequence.
+
+    Return activates the sheet's default button, Tab moves focus to Allow when
+    the default is elsewhere, Space presses whatever is focused.
+
+    @param pid - Target browser process.
+    @returns True when the sequence was posted.
+    """
+    try:
+        from Quartz import CGEventCreateKeyboardEvent, CGEventPostToPid
+    except Exception:
+        return False
+    try:
+        # kVK_Return = 36, kVK_Tab = 48, kVK_Space = 49
+        for code in (36, 48, 49):
+            for is_down in (True, False):
+                event = CGEventCreateKeyboardEvent(None, code, is_down)
+                if event is None:
+                    return False
+                CGEventPostToPid(pid, event)
+                time.sleep(0.03)
+            time.sleep(0.04)
+        return True
+    except Exception:
+        return False
+
+
 class Engine:
     def __init__(self, observe: bool = False, poll_ms: int = POLL_MS_DEFAULT,
                  include_edge: bool = False, log_path: Path = LOG_PATH,
@@ -713,6 +813,51 @@ class Engine:
         }
         return " ".join(f"{key}={value!r}" for key, value in attributes.items())
 
+    def _locked_sweep(self, pids, now: float) -> None:
+        """Approve the consent sheet while the screen is locked.
+
+        AX sees only the app shell there, so the sheet is located by its window
+        bounds and pressed with keyboard events posted to the browser pid.
+        The sheet disappearing right after the keys were posted is the same
+        evidence the AX path uses; the client's next connect is the real proof.
+
+        @param pids - Browser process ids from this sweep.
+        @param now - Sweep clock, used for dedupe.
+        """
+        panels = _locked_panels(pids)
+        for pid, bounds in panels:
+            x, y, width, height = bounds
+            key = f"locked:{pid}:{width:.0f}x{height:.0f}+{x:.0f}+{y:.0f}"
+            first = self._first_seen.get(key)
+            if first is None:
+                self._first_seen[key] = time.time()
+                self.log(
+                    f"  locked sheet candidate {width:.0f}x{height:.0f} at "
+                    f"({x:.0f},{y:.0f}) pid={pid} - keys once armed",
+                    "AUDIT",
+                )
+                continue
+            if time.time() - first < ACTIVATION_GUARD_S:
+                continue
+            last = self._seen.get(key)
+            if last is not None and now - last < DEDUPE_SECONDS:
+                self.log(f"  locked sheet deduped key={key} - not pressing", "AUDIT")
+                continue
+            self._seen[key] = now
+            posted = _post_keys(pid)
+            self.log(
+                f"locked screen: {len(panels)} sheet(s), Return+Tab+Space to "
+                f"pid={pid} posted={posted}",
+                "AUDIT",
+            )
+            if not posted:
+                continue
+            # Give the sheet a beat to go before calling it approved.
+            time.sleep(0.25)
+            if not _locked_panels([pid]):
+                self._first_seen.pop(key, None)
+                self.log("  APPROVED via keyboard (locked screen)", "ACTION")
+
     # -------- one sweep, and the loop --------
 
     def sweep(self) -> None:
@@ -725,6 +870,13 @@ class Engine:
 
         direct_started = time.monotonic()
         chrome_pids = self.chrome_pids()
+
+        if _screen_locked():
+            # The AX tree answers with the app shell only while the screen is
+            # locked; the window server still knows where the sheet is.
+            if not self.observe:
+                self._locked_sweep(chrome_pids, now)
+            return
         if is_diagnostic_sweep:
             direct_ms = int((time.monotonic() - direct_started) * 1000)
             workspace_started = time.monotonic()
