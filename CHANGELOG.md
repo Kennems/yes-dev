@@ -5,6 +5,29 @@ measured - the numbers are from this repo's own runs, not estimates.
 
 ## Unreleased
 
+## 1.7.1 - 2026-11-26
+
+Locked screen: the consent sheet is approved with no desktop in view. macOS
+reduces every app's AX tree to its shell while the session is locked -
+`AXWindows` still answers with the right count, but each entry comes back as
+`AXApplication`, with no sheets and no buttons - so the existing AX path had
+nothing to press. The pointer path was dead too: four ways of posting a click
+(post-to-pid, global HID tap, with and without timestamp and click state) were
+measured against a page-level counter and delivered nothing.
+
+The window server keeps the geometry, though. `CGWindowListCopyWindowInfo`
+still reports the sheet at 448x200 with its owner pid, so the watcher locates it
+by size and posts `Return`, `Tab` and `Space` straight to the browser process
+with `CGEventPostToPid` - no pointer movement, no app activation, and it cannot
+land in another app. Measured on a locked desktop: ten fresh debugging
+handshakes produced ten sheets, all ten were approved, and none were left behind.
+
+Unlocked sessions keep the AX path unchanged. The locked branch runs only when
+`CGSSessionScreenIsLocked` is set, and it is skipped in observe mode.
+
+macOS releases are now built by GitHub Actions on a tagged push, with the app
+bundle, a SHA256 file, and the release notes attached to the release.
+
 ## 1.7.0 - 2026-11-20
 
 Chinese interface. Every string in the tray menu, the settings window, the

@@ -38,7 +38,7 @@ from pathlib import Path
 BASE = Path(__file__).resolve().parent.parent
 ICON_SOURCE = BASE / "docs" / "assets" / "logo.png"
 BUNDLE_ID = "com.dev-newb.yesdev"
-VERSION = "1.6.2"
+VERSION = "1.7.1"
 RUNTIME_MINOR = "python3.11"   # the directory name under Contents/lib
 
 INFO_PLIST = """<?xml version="1.0" encoding="UTF-8"?>

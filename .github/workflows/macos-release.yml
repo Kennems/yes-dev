@@ -1,0 +1,109 @@
+name: macOS release
+
+# Builds YesDev.app on a tagged push and attaches it to the GitHub release.
+# Signing: an Apple Development certificate is used when MACOS_CERT_P12 and
+# MACOS_CERT_PASSWORD are present as repository secrets, so the Accessibility
+# grant survives upgrades (TCC matches bundle id plus certificate subject).
+# Without them the bundle is ad-hoc signed, which ties the grant to the code
+# hash - every upgrade then needs the grant again.
+
+on:
+  push:
+    tags: ["v*"]
+  workflow_dispatch:
+
+permissions:
+  contents: write
+
+jobs:
+  build:
+    runs-on: macos-14
+    env:
+      MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
+      MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install Python 3.11 with Tk
+        id: python
+        run: |
+          brew install python@3.11 python-tk@3.11
+          PREFIX="$(brew --prefix python@3.11)"
+          VERSIONS="$PREFIX/Frameworks/Python.framework/Versions/3.11"
+          "$VERSIONS/bin/python3.11" -c "import sys, tkinter; print(sys.version.split()[0], 'Tk', tkinter.TkVersion)"
+
+          # A copied interpreter loses its code identity and is killed on launch,
+          # so stage a writable runtime with the same shape build_macos_app.py
+          # expects (<root>/bin/python3.11 + <root>/lib) and re-sign it.
+          RT="$RUNNER_TEMP/rt"
+          mkdir -p "$RT/bin"
+          ditto "$VERSIONS/lib" "$RT/lib"
+          chmod -R u+w "$RT/lib"
+          cp "$VERSIONS/bin/python3.11" "$RT/bin/python3.11"
+          codesign --force --sign - "$RT/bin/python3.11"
+          "$RT/bin/python3.11" -c "import sys, tkinter; print('staged prefix', sys.prefix, 'Tk', tkinter.TkVersion)"
+          echo "python=$RT/bin/python3.11" >> "$GITHUB_OUTPUT"
+
+      - name: Import signing identity
+        if: env.MACOS_CERT_P12 != ''
+        run: |
+          KEYCHAIN="$RUNNER_TEMP/build.keychain"
+          security create-keychain -p actions "$KEYCHAIN"
+          security set-keychain-settings -lut 3600 "$KEYCHAIN"
+          security unlock-keychain -p actions "$KEYCHAIN"
+          printf '%s' "$MACOS_CERT_P12" | base64 -D > "$RUNNER_TEMP/cert.p12"
+          security import "$RUNNER_TEMP/cert.p12" -k "$KEYCHAIN" \
+            -P "$MACOS_CERT_PASSWORD" -T /usr/bin/codesign -T /usr/bin/security
+          security set-key-partition-list -S apple-tool:,apple:,codesign: -s -k actions "$KEYCHAIN" > /dev/null
+          security list-keychains -d user -s "$KEYCHAIN" $(security list-keychains -d user | tr -d ' "')
+          rm -f "$RUNNER_TEMP/cert.p12"
+          security find-identity -v -p codesigning
+
+      - name: Build app
+        run: |
+          python3 packaging/build_macos_app.py \
+            --python "${{ steps.python.outputs.python }}" --output dist
+          codesign -dv dist/YesDev.app 2>&1 | grep -E "Identifier|TeamIdentifier|Authority" || true
+          file dist/YesDev.app/Contents/MacOS/YesDev
+          codesign --verify --deep --strict dist/YesDev.app && echo "signature valid"
+
+      - name: Package
+        id: pack
+        run: |
+          VERSION="${GITHUB_REF_NAME#v}"
+          case "$VERSION" in v*|"") VERSION="dev-${GITHUB_SHA::7}";; esac
+          NAME="YesDev-${VERSION}-macos-universal2.zip"
+          ditto -c -k --sequesterRsrc --keepParent dist/YesDev.app "$NAME"
+          shasum -a 256 "$NAME" > SHA256SUMS.txt
+          cat SHA256SUMS.txt
+          echo "name=$NAME" >> "$GITHUB_OUTPUT"
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yesdev-macos
+          path: |
+            ${{ steps.pack.outputs.name }}
+            SHA256SUMS.txt
+
+      - name: Publish release
+        if: startsWith(github.ref, 'refs/tags/v')
+        env:
+          GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+        run: |
+          TAG="$GITHUB_REF_NAME"
+          NOTES="$(awk -v tag="${TAG#v}" '
+            $0 ~ "^## " tag " " {capture=1; next}
+            capture && /^## / {exit}
+            capture {print}
+          ' CHANGELOG.md)"
+          if gh release view "$TAG" > /dev/null 2>&1; then
+            gh release upload "$TAG" "${{ steps.pack.outputs.name }}" SHA256SUMS.txt --clobber
+          else
+            printf '%s\n' "${NOTES:-See CHANGELOG.md.}" > "$RUNNER_TEMP/notes.md"
+            gh release create "$TAG" \
+              --title "Yes, Dev ${TAG#v}" \
+              --notes-file "$RUNNER_TEMP/notes.md" \
+              "${{ steps.pack.outputs.name }}" SHA256SUMS.txt
+          fi
+          gh release view "$TAG" --json url --jq .url
