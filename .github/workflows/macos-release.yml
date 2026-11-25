@@ -17,10 +17,10 @@ permissions:
 
 jobs:
   build:
-    # macos-13 is the x86_64 pool; macos-14 reports
-    # "configuration 'macos-14-arm64-us-default' is not supported" on this
-    # account, so the build runs on Intel and produces an x86_64 bundle.
-    runs-on: macos-13
+    # macos-15 is the current arm64 image. macos-14 was retired on 2026-11-02
+    # and any job pinned to it is cancelled before its first step with
+    # "configuration 'macos-14-arm64-us-default' is not supported".
+    runs-on: macos-15
     env:
       MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
       MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
