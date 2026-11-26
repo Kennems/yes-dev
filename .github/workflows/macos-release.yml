@@ -31,6 +31,15 @@ jobs:
 
     steps:
       - uses: actions/checkout@v4
+        with:
+          # The build freezes its output tree read-only, and git cannot delete
+          # read-only files. Clearing the previous bundle is handled below.
+          clean: false
+
+      - name: Clear previous build
+        run: |
+          chmod -R u+w dist 2>/dev/null || true
+          rm -rf dist
 
       - name: Prepare relocatable runtime
         id: python
@@ -130,3 +139,7 @@ jobs:
               "${{ steps.pack.outputs.name }}" SHA256SUMS.txt
           fi
           gh release view "$TAG" --json url --jq .url
+
+      - name: Unlock build tree
+        if: always()
+        run: chmod -R u+w dist 2>/dev/null || true
