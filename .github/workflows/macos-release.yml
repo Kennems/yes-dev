@@ -71,6 +71,18 @@ jobs:
           rm -f "$RUNNER_TEMP/cert.p12"
           security find-identity -v -p codesigning
 
+      - name: Diagnose signing
+        run: |
+          whoami
+          id
+          security list-keychains -d user
+          security show-keychain-info ~/Library/Keychains/login.keychain-db || true
+          security find-identity -v -p codesigning || true
+          echo "console user: $(stat -f%Su /dev/console)"
+          printf 'test' > "$RUNNER_TEMP/probe"
+          codesign --force --sign "Apple Development: 1657521081@qq.com (6634F5KJG3)" \
+            --identifier com.dev-newb.probe "$RUNNER_TEMP/probe" 2>&1 || echo "probe sign failed: $?"
+
       - name: Build app
         run: |
           python3 packaging/build_macos_app.py \
