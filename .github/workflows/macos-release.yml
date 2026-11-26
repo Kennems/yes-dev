@@ -17,10 +17,14 @@ permissions:
 
 jobs:
   build:
-    # macos-15 is the current arm64 image. macos-14 was retired on 2026-11-02
-    # and any job pinned to it is cancelled before its first step with
-    # "configuration 'macos-14-arm64-us-default' is not supported".
-    runs-on: macos-15
+    # GitHub's hosted macOS runners never get assigned to this account: macos-14
+    # was retired on 2026-11-02 (jobs are cancelled at dispatch) and macos-15 sat
+    # queued for 15+ minutes twice with the platform reporting operational. The
+    # build therefore runs on this repository's own runner, registered at
+    # ~/actions-runner on the Mac. That also puts the Apple Development identity
+    # in the login keychain within reach, so the bundle is signed with the same
+    # certificate as earlier builds and the Accessibility grant survives.
+    runs-on: [self-hosted, macOS, ARM64]
     env:
       MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
       MACOS_CERT_PASSWORD: ${{ secrets.MACOS_CERT_PASSWORD }}
