@@ -1,11 +1,12 @@
-name: macOS release
+name: Build and release
 
-# Builds YesDev.app on a tagged push and attaches it to the GitHub release.
-# Signing: an Apple Development certificate is used when MACOS_CERT_P12 and
-# MACOS_CERT_PASSWORD are present as repository secrets, so the Accessibility
-# grant survives upgrades (TCC matches bundle id plus certificate subject).
-# Without them the bundle is ad-hoc signed, which ties the grant to the code
-# hash - every upgrade then needs the grant again.
+# Builds both platforms on a tagged push and attaches them to one release.
+#
+# macOS runs on this repository's own runner (~/actions-runner on the Mac):
+# GitHub's hosted macOS images never get assigned here - macos-14 was retired on
+# 2026-11-02 and macos-15 sat queued for 15+ minutes twice. Running locally also
+# puts the Apple Development identity in reach, so a rebuild keeps the TCC
+# Accessibility grant. Windows builds on the hosted windows-latest image.
 
 on:
   push:
@@ -16,14 +17,7 @@ permissions:
   contents: write
 
 jobs:
-  build:
-    # GitHub's hosted macOS runners never get assigned to this account: macos-14
-    # was retired on 2026-11-02 (jobs are cancelled at dispatch) and macos-15 sat
-    # queued for 15+ minutes twice with the platform reporting operational. The
-    # build therefore runs on this repository's own runner, registered at
-    # ~/actions-runner on the Mac. That also puts the Apple Development identity
-    # in the login keychain within reach, so the bundle is signed with the same
-    # certificate as earlier builds and the Accessibility grant survives.
+  macos:
     runs-on: [self-hosted, macOS, ARM64]
     env:
       MACOS_CERT_P12: ${{ secrets.MACOS_CERT_P12 }}
@@ -100,14 +94,10 @@ jobs:
       - name: Diagnose signing
         run: |
           whoami
-          id
           security list-keychains -d user
           security show-keychain-info ~/Library/Keychains/login.keychain-db || true
           security find-identity -v -p codesigning || true
           echo "console user: $(stat -f%Su /dev/console)"
-          printf 'test' > "$RUNNER_TEMP/probe"
-          codesign --force --sign "Apple Development: 1657521081@qq.com (6634F5KJG3)" \
-            --identifier com.dev-newb.probe "$RUNNER_TEMP/probe" 2>&1 || echo "probe sign failed: $?"
 
       - name: Build app
         run: |
@@ -117,7 +107,7 @@ jobs:
           file dist/YesDev.app/Contents/MacOS/YesDev
           codesign --verify --deep --strict dist/YesDev.app && echo "signature valid"
 
-      - name: Package
+      - name: Package DMG
         id: pack
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
@@ -129,8 +119,6 @@ jobs:
           ditto dist/YesDev.app "$STAGE/YesDev.app"
           ln -s /Applications "$STAGE/Applications"
           hdiutil create -volname "Yes, Dev" -srcfolder "$STAGE" -ov -format UDZO "$NAME"
-          shasum -a 256 "$NAME" > SHA256SUMS.txt
-          cat SHA256SUMS.txt
           ls -lh "$NAME"
           hdiutil verify "$NAME"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
@@ -138,32 +126,91 @@ jobs:
       - uses: actions/upload-artifact@v4
         with:
           name: yesdev-macos
-          path: |
-            ${{ steps.pack.outputs.name }}
-            SHA256SUMS.txt
+          path: ${{ steps.pack.outputs.name }}
 
-      - name: Publish release
-        if: startsWith(github.ref, 'refs/tags/v')
+      - name: Unlock build tree
+        if: always()
+        run: chmod -R u+w dist 2>/dev/null || true
+
+  windows:
+    runs-on: windows-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Resolve version
+        id: v
+        shell: bash
+        run: |
+          V="${GITHUB_REF_NAME#v}"
+          if ! [[ "$V" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+            V=$(grep -m1 '^version = ' pyproject.toml | cut -d'"' -f2)
+          fi
+          echo "version=$V" >> "$GITHUB_OUTPUT"
+          echo "building $V"
+
+      - name: Clear previous build
+        shell: pwsh
+        run: if (Test-Path build) { Remove-Item -Recurse -Force build }
+
+      - name: Install Python 3.14 with Tcl/Tk
+        shell: pwsh
+        run: |
+          $ErrorActionPreference = "Stop"
+          # The python.org installer is the complete layout build_windows.py
+          # expects: pythonw.exe, Lib, DLLs and tcl all present.
+          $url = "https://www.python.org/ftp/python/3.14.5/python-3.14.5-amd64.exe"
+          Invoke-WebRequest -Uri $url -OutFile "$env:RUNNER_TEMP\python-setup.exe"
+          Start-Process -Wait -FilePath "$env:RUNNER_TEMP\python-setup.exe" -ArgumentList @(
+            "/quiet", "InstallAllUsers=1", "TargetDir=C:\py314",
+            "Include_tcltk=1", "Include_pip=1", "Include_test=0", "PrependPath=0"
+          )
+          & "C:\py314\python.exe" -c "import sys, tkinter; print(sys.version.split()[0], 'Tk', tkinter.TkVersion)"
+
+      - name: Build portable ZIP
+        run: |
+          C:\py314\python.exe packaging\build_windows.py `
+            --version ${{ steps.v.outputs.version }} --output build
+
+      - uses: actions/upload-artifact@v4
+        with:
+          name: yesdev-windows
+          path: build/YesDev-*-windows-x64.zip
+
+  release:
+    needs: [macos, windows]
+    if: startsWith(github.ref, 'refs/tags/v')
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/download-artifact@v4
+        with:
+          path: assets
+          merge-multiple: true
+
+      - name: Create or update release
         env:
           GH_TOKEN: ${{ secrets.GITHUB_TOKEN }}
         run: |
           TAG="$GITHUB_REF_NAME"
+          ls -lh assets
+          ( cd assets && shasum -a 256 *.dmg *.zip > SHA256SUMS.txt && cat SHA256SUMS.txt )
+
           NOTES="$(awk -v tag="${TAG#v}" '
             $0 ~ "^## " tag " " {capture=1; next}
             capture && /^## / {exit}
             capture {print}
           ' CHANGELOG.md)"
+
           if gh release view "$TAG" > /dev/null 2>&1; then
-            gh release upload "$TAG" "${{ steps.pack.outputs.name }}" SHA256SUMS.txt --clobber
+            gh release upload "$TAG" assets/* --clobber
           else
             printf '%s\n' "${NOTES:-See CHANGELOG.md.}" > "$RUNNER_TEMP/notes.md"
             gh release create "$TAG" \
               --title "Yes, Dev ${TAG#v}" \
               --notes-file "$RUNNER_TEMP/notes.md" \
-              "${{ steps.pack.outputs.name }}" SHA256SUMS.txt
+              assets/*
           fi
           gh release view "$TAG" --json url --jq .url
-
-      - name: Unlock build tree
-        if: always()
-        run: chmod -R u+w dist 2>/dev/null || true
