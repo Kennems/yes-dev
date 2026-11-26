@@ -203,7 +203,9 @@ jobs:
           TAG="$GITHUB_REF_NAME"
           NAME="$(ls build/YesDev-*-windows-x64.zip | head -1)"
           NAME="$(basename "$NAME")"
-          ( cd build && shasum -a 256 "$NAME" > "$NAME.sha256" && cat "$NAME.sha256" )
+          # Git Bash has no shasum; hashlib is always there because this job
+          # installed Python for the build.
+          ( cd build && python -c "import hashlib,sys; p=sys.argv[1]; print(hashlib.sha256(open(p,'rb').read()).hexdigest()+'  '+p)" "$NAME" > "$NAME.sha256" && cat "$NAME.sha256" )
           if ! gh release view "$TAG" > /dev/null 2>&1; then
             NOTES="$(awk -v tag="${TAG#v}" '
               $0 ~ "^## " tag " " {capture=1; next}
