@@ -122,10 +122,17 @@ jobs:
         run: |
           VERSION="${GITHUB_REF_NAME#v}"
           case "$VERSION" in v*|"") VERSION="dev-${GITHUB_SHA::7}";; esac
-          NAME="YesDev-${VERSION}-macos-universal2.zip"
-          ditto -c -k --sequesterRsrc --keepParent dist/YesDev.app "$NAME"
+          NAME="YesDev-${VERSION}-macos-universal2.dmg"
+          STAGE="$RUNNER_TEMP/dmg"
+          rm -rf "$STAGE"
+          mkdir -p "$STAGE"
+          ditto dist/YesDev.app "$STAGE/YesDev.app"
+          ln -s /Applications "$STAGE/Applications"
+          hdiutil create -volname "Yes, Dev" -srcfolder "$STAGE" -ov -format UDZO "$NAME"
           shasum -a 256 "$NAME" > SHA256SUMS.txt
           cat SHA256SUMS.txt
+          ls -lh "$NAME"
+          hdiutil verify "$NAME"
           echo "name=$NAME" >> "$GITHUB_OUTPUT"
 
       - uses: actions/upload-artifact@v4
