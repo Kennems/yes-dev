@@ -80,6 +80,23 @@ jobs:
           rm -f "$RUNNER_TEMP/cert.p12"
           security find-identity -v -p codesigning
 
+      - name: Unlock login keychain
+        run: |
+          # A self-hosted runner has no GUI security session: the login keychain
+          # is locked there and codesign fails with errSecInternalComponent
+          # ("User interaction is not allowed" when prompting for the key).
+          # The password lives in ~/actions-runner/.env, which the runner injects
+          # into every job, so it never leaves this machine.
+          if [ -n "$KEYCHAIN_PASSWORD" ] && \
+             security unlock-keychain -p "$KEYCHAIN_PASSWORD" "$HOME/Library/Keychains/login.keychain-db" 2>/dev/null; then
+            security set-key-partition-list -S apple-tool:,apple:,codesign: -s \
+              -k "$KEYCHAIN_PASSWORD" "$HOME/Library/Keychains/login.keychain-db" > /dev/null 2>&1 || true
+            echo "keychain unlocked; the build will sign with the certificate"
+          else
+            echo "::warning::KEYCHAIN_PASSWORD missing or wrong; falling back to ad-hoc signing, which drops the Accessibility grant on every upgrade"
+            echo "YESDEV_SIGN_IDENTITY=-" >> "$GITHUB_ENV"
+          fi
+
       - name: Diagnose signing
         run: |
           whoami
