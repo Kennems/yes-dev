@@ -32,25 +32,29 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install Python 3.11 with Tk
+      - name: Prepare relocatable runtime
         id: python
         run: |
-          brew install python@3.11 python-tk@3.11
-          PREFIX="$(brew --prefix python@3.11)"
-          VERSIONS="$PREFIX/Frameworks/Python.framework/Versions/3.11"
-          "$VERSIONS/bin/python3.11" -c "import sys, tkinter; print(sys.version.split()[0], 'Tk', tkinter.TkVersion)"
-
-          # A copied interpreter loses its code identity and is killed on launch,
-          # so stage a writable runtime with the same shape build_macos_app.py
-          # expects (<root>/bin/python3.11 + <root>/lib) and re-sign it.
+          # Homebrew's Python hardcodes sys.prefix, so a copy of it refuses to
+          # run from the bundle ("unexpected sys.prefix ... not relocatable").
+          # The interpreter inside an installed YesDev.app is relocatable by
+          # construction - the previous build proved it - so it seeds this one.
+          # A copy also loses its code identity and is killed on launch, hence
+          # the ad-hoc re-sign before the first run.
+          SRC="/Applications/YesDev.app"
+          if [ ! -x "$SRC/Contents/MacOS/YesDev" ]; then
+            echo "::error::No installed YesDev.app to seed the runtime from"
+            exit 1
+          fi
           RT="$RUNNER_TEMP/rt"
+          rm -rf "$RT"
           mkdir -p "$RT/bin"
-          ditto "$VERSIONS/lib" "$RT/lib"
+          ditto "$SRC/Contents/lib" "$RT/lib"
           chmod -R u+w "$RT/lib"
-          cp "$VERSIONS/bin/python3.11" "$RT/bin/python3.11"
-          codesign --force --sign - "$RT/bin/python3.11"
-          "$RT/bin/python3.11" -c "import sys, tkinter; print('staged prefix', sys.prefix, 'Tk', tkinter.TkVersion)"
-          echo "python=$RT/bin/python3.11" >> "$GITHUB_OUTPUT"
+          cp "$SRC/Contents/MacOS/YesDev" "$RT/bin/YesDev"
+          codesign --force --sign - "$RT/bin/YesDev"
+          "$RT/bin/YesDev" -c "import sys, tkinter; print('staged', sys.prefix, sys.version.split()[0], 'Tk', tkinter.TkVersion)"
+          echo "python=$RT/bin/YesDev" >> "$GITHUB_OUTPUT"
 
       - name: Import signing identity
         if: env.MACOS_CERT_P12 != ''
